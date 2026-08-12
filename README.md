@@ -55,12 +55,14 @@ The pipeline processes user questions dynamically to produce cited, high-confide
 ## ✨ Features
 
 - **Interactive AI Chat:** A ChatGPT-style streaming UI with Markdown formatting, clean headers, custom user/assistant avatars, copy/download utilities, and code block formatting.
-- **Dynamic Retrieval Citations:** Highlights precisely which PDF source documents (and which specific pages) were retrieved to compile the answers.
+- **Resilient Hybrid Search Routing:** Dynamically prioritizes local **FAISS Knowledge Base** queries. If similarity scores fall below the configurable threshold, the pipeline automatically falls back to **Google Search Grounding** (if enabled), with a second fail-safe fallback to **pure LLM** generation if search APIs are unsupported or throw errors.
+- **Universal Responsiveness:** Designed with custom media queries supporting desktop, tablet, and mobile breakpoints. Stacks columns vertically on tablet/mobile screens (pushing the Details panel cleanly to the bottom) while maintaining inline horizontal action button rows inside chat messages.
+- **Persistent State & Citation Restoration:** Persists session settings (model, temperature, active AI persona) and full chat history inside a local **SQLite database**, correctly parsing and restoring source types (`📄 Knowledge Base`, `🌐 Web Search`, `🧠 AI General Knowledge`), web source links, and confidence parameters on load.
+- **Dynamic Retrieval Citations:** Highlights precisely which source documents (and which specific pages/URLs) were retrieved to compile the answers.
 - **Retrieval Confidence Gauge:** Shows a percentage confidence rating based on vector database distance metrics.
 - **Suggested Follow-up Questions:** Dynamically extracts related recommendations from responses, enabling easy conversational progression.
-- **Tool Comparison Matrix:** A dedicated UI interface to dynamically analyze and contrast two frameworks (e.g. LangChain vs LangGraph) using retrieved document details.
 - **Index Management:** Directly rebuild and re-index your vector database from the sidebar configuration panel.
-- **Premium Glassmorphic Styling:** A modern, custom dark theme complete with fluid transitions, blur filters, and vibrant color gradients.
+- **Premium Glassmorphic Styling:** A modern, custom dark/light theme complete with fluid transitions, blur filters, and vibrant color gradients.
 
 ---
 
