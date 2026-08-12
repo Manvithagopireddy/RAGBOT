@@ -1,0 +1,20 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}",
+        "${workspaceFolder}/venv/Lib/site-packages"
+    ],
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}",
+        "${workspaceFolder}/venv/Lib/site-packages"
+    ],
+    "pyright.pythonInterpreter": "${workspaceFolder}/venv/Scripts/python.exe",
+    "pyright.extraPaths": [
+        "${workspaceFolder}"
+    ],
+    "pyright.ignore": [
+        "**/__pyright_virtual__/**",
+        "**/.venv/**",
+        "**/venv/**"
+    ]
+}

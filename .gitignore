@@ -1,0 +1,30 @@
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables (contains API keys)
+.env
+
+# Streamlit configurations and state
+.streamlit/
+
+# Vector database storage (re-generated dynamically)
+vector_store/*.faiss
+vector_store/*.pkl
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Databases & runtime storage
+*.db
+chats/
+uploads/
+logs/
