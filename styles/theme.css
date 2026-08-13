@@ -1150,3 +1150,162 @@ h6 {
         height: 32px !important;
     }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ANALYTICS DASHBOARD
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Page Header ──────────────────────────────────────────────── */
+.analytics-page-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 0 4px;
+}
+
+.analytics-page-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.5));
+}
+
+.analytics-page-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ececec 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+}
+
+.analytics-page-sub {
+    font-size: 0.82rem;
+    color: #6e6e80;
+    margin-top: 2px;
+}
+
+/* ── KPI Cards ────────────────────────────────────────────────── */
+.analytics-kpi-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    padding: 18px 16px 14px;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    backdrop-filter: blur(12px);
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.analytics-kpi-card:hover {
+    transform: translateY(-3px);
+    background: rgba(255, 255, 255, 0.055);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.analytics-kpi-icon {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+}
+
+.analytics-kpi-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.analytics-kpi-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8e8ea0;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+}
+
+.analytics-kpi-sub {
+    font-size: 0.7rem;
+    color: #4a4a5a;
+    margin-top: 2px;
+}
+
+/* ── Chart Glass Cards ────────────────────────────────────────── */
+.analytics-glass-card {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    padding: 18px 16px 12px;
+    backdrop-filter: blur(14px);
+    margin-bottom: 4px;
+    transition: border-color 0.2s ease;
+}
+
+.analytics-glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ── Chart Section Headers ─────────────────────────────────────── */
+.analytics-chart-header {
+    margin-bottom: 10px;
+}
+
+.analytics-chart-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ececec;
+}
+
+.analytics-chart-subtitle {
+    font-size: 0.72rem;
+    color: #6e6e80;
+    margin-top: 2px;
+}
+
+/* ── Top Sessions Table ───────────────────────────────────────── */
+.analytics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-top: 8px;
+}
+
+.analytics-table thead tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.analytics-table thead th {
+    text-align: left;
+    color: #6e6e80;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 6px 8px 8px;
+}
+
+.analytics-table tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: background 0.15s ease;
+}
+
+.analytics-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.analytics-table tbody td {
+    padding: 8px 8px;
+    vertical-align: middle;
+}
+
+.analytics-table tbody tr:last-child {
+    border-bottom: none;
+}

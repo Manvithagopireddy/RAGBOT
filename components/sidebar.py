@@ -106,6 +106,10 @@ def render_sidebar() -> dict:
         st.markdown("<hr class='sidebar-divider'>", unsafe_allow_html=True)
 
         # ── SIDEBAR FOOTER ────────────────────────────────────────
+        if st.button("📊 Analytics", use_container_width=True):
+            st.session_state.show_analytics = True
+            st.rerun()
+
         if st.button("⚙️ Settings", use_container_width=True):
             render_settings_modal()
         

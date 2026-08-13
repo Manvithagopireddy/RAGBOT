@@ -21,11 +21,25 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 
 
 def _get_client() -> genai.Client:
-    """Returns a google.genai Client using GOOGLE_API_KEY from environment."""
+    """Returns a google.genai Client.
+    Supports both standard API keys (AIza...) and OAuth access tokens (AQ...).
+    """
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("GOOGLE_API_KEY is not set. Please configure it in your .env file.")
+
+    # OAuth access token (AQ. prefix) — use as Bearer token via Credentials
+    if api_key.startswith("AQ."):
+        try:
+            from google.oauth2.credentials import Credentials
+            credentials = Credentials(token=api_key)
+            return genai.Client(credentials=credentials)
+        except ImportError:
+            pass  # fall through to api_key mode
+
+    # Standard REST API key (AIza...)
     return genai.Client(api_key=api_key)
+
 
 
 def execute_rag_pipeline(

@@ -11,6 +11,7 @@ from storage import ChatStore
 from components.components import inject_custom_css, inject_all_js
 from components.sidebar import render_sidebar, _start_new_chat
 from components.chat import render_chat_page
+from components.analytics import render_analytics_dashboard
 from src.logger import get_logger
 
 # Load environment variables
@@ -136,4 +137,7 @@ sidebar_settings = render_sidebar()
 st.session_state.sidebar_settings = sidebar_settings
 
 # ── PAGE ROUTING ───────────────────────────────────────────────────────────────
-render_chat_page()
+if st.session_state.get("show_analytics", False):
+    render_analytics_dashboard()
+else:
+    render_chat_page()

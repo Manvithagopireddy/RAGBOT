@@ -428,6 +428,7 @@ class ChatStore:
             thumbs_down = conn.execute(
                 "SELECT COUNT(*) as c FROM messages WHERE feedback='down'"
             ).fetchone()["c"]
+
             # Messages per day (last 14 days)
             daily = conn.execute(
                 """SELECT DATE(created_at) as day, COUNT(*) as cnt
@@ -435,10 +436,93 @@ class ChatStore:
                    WHERE DATE(created_at) >= DATE('now', '-14 days')
                    GROUP BY day ORDER BY day ASC"""
             ).fetchall()
+
             # Avg response length
             avg_len = conn.execute(
                 "SELECT AVG(LENGTH(content)) as a FROM messages WHERE role='assistant'"
             ).fetchone()["a"]
+
+            # Avg confidence score per day (last 14 days) — assistant messages with score
+            daily_confidence = conn.execute(
+                """SELECT DATE(created_at) as day, AVG(confidence_score) as avg_score
+                   FROM messages
+                   WHERE role='assistant'
+                     AND confidence_score IS NOT NULL
+                     AND DATE(created_at) >= DATE('now', '-14 days')
+                   GROUP BY day ORDER BY day ASC"""
+            ).fetchall()
+
+            # Overall avg confidence score
+            avg_confidence = conn.execute(
+                """SELECT AVG(confidence_score) as a FROM messages
+                   WHERE role='assistant' AND confidence_score IS NOT NULL"""
+            ).fetchone()["a"]
+
+            # Source type distribution from confidence_desc prefix
+            kb_count = conn.execute(
+                """SELECT COUNT(*) as c FROM messages
+                   WHERE role='assistant' AND confidence_desc LIKE 'source:📄 Knowledge Base'"""
+            ).fetchone()["c"]
+            web_count = conn.execute(
+                """SELECT COUNT(*) as c FROM messages
+                   WHERE role='assistant' AND confidence_desc LIKE 'source:🌐 Web Search'"""
+            ).fetchone()["c"]
+            ai_count = conn.execute(
+                """SELECT COUNT(*) as c FROM messages
+                   WHERE role='assistant'
+                     AND (confidence_desc IS NULL OR confidence_desc NOT LIKE 'source:%')"""
+            ).fetchone()["c"]
+
+            # Model usage breakdown
+            model_usage = conn.execute(
+                """SELECT model, COUNT(*) as cnt FROM sessions GROUP BY model ORDER BY cnt DESC"""
+            ).fetchall()
+
+            # Feedback counts per source type
+            fb_kb_up = conn.execute(
+                """SELECT COUNT(*) as c FROM messages
+                   WHERE feedback='up' AND confidence_desc LIKE 'source:📄 Knowledge Base'"""
+            ).fetchone()["c"]
+            fb_kb_down = conn.execute(
+                """SELECT COUNT(*) as c FROM messages
+                   WHERE feedback='down' AND confidence_desc LIKE 'source:📄 Knowledge Base'"""
+            ).fetchone()["c"]
+            fb_web_up = conn.execute(
+                """SELECT COUNT(*) as c FROM messages
+                   WHERE feedback='up' AND confidence_desc LIKE 'source:🌐 Web Search'"""
+            ).fetchone()["c"]
+            fb_web_down = conn.execute(
+                """SELECT COUNT(*) as c FROM messages
+                   WHERE feedback='down' AND confidence_desc LIKE 'source:🌐 Web Search'"""
+            ).fetchone()["c"]
+            fb_ai_up = conn.execute(
+                """SELECT COUNT(*) as c FROM messages
+                   WHERE feedback='up'
+                     AND (confidence_desc IS NULL OR confidence_desc NOT LIKE 'source:%')"""
+            ).fetchone()["c"]
+            fb_ai_down = conn.execute(
+                """SELECT COUNT(*) as c FROM messages
+                   WHERE feedback='down'
+                     AND (confidence_desc IS NULL OR confidence_desc NOT LIKE 'source:%')"""
+            ).fetchone()["c"]
+
+            # Top 5 sessions by message count
+            top_sessions = conn.execute(
+                """SELECT s.title, s.model, s.created_at,
+                          COUNT(m.message_id) as msg_count
+                   FROM sessions s
+                   LEFT JOIN messages m ON s.session_id = m.session_id
+                   GROUP BY s.session_id
+                   ORDER BY msg_count DESC LIMIT 5"""
+            ).fetchall()
+
+            # Sessions created per day (last 14 days)
+            daily_sessions = conn.execute(
+                """SELECT DATE(created_at) as day, COUNT(*) as cnt
+                   FROM sessions
+                   WHERE DATE(created_at) >= DATE('now', '-14 days')
+                   GROUP BY day ORDER BY day ASC"""
+            ).fetchall()
 
         return {
             "total_sessions": total_sessions,
@@ -448,6 +532,21 @@ class ChatStore:
             "thumbs_down": thumbs_down,
             "daily_messages": [dict(r) for r in daily],
             "avg_response_length": int(avg_len or 0),
+            "daily_confidence": [dict(r) for r in daily_confidence],
+            "avg_confidence": round(avg_confidence or 0, 1),
+            "source_distribution": {
+                "Knowledge Base": kb_count,
+                "Web Search": web_count,
+                "AI General": ai_count,
+            },
+            "model_usage": [dict(r) for r in model_usage],
+            "feedback_by_source": {
+                "Knowledge Base": {"up": fb_kb_up, "down": fb_kb_down},
+                "Web Search": {"up": fb_web_up, "down": fb_web_down},
+                "AI General": {"up": fb_ai_up, "down": fb_ai_down},
+            },
+            "top_sessions": [dict(r) for r in top_sessions],
+            "daily_sessions": [dict(r) for r in daily_sessions],
         }
 
     # ──────────────────────────────────────────────────
