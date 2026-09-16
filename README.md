@@ -1,5 +1,12 @@
 # 🤖 AI Tech Assistant
 
+[![CI Pipeline](https://github.com/Manvithagopireddy/RAGBOT/actions/workflows/ci.yml/badge.svg)](https://github.com/Manvithagopireddy/RAGBOT/actions)
+![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-FF4B4B.svg)
+![Vector DB](https://img.shields.io/badge/Vector%20DB-FAISS-green.svg)
+![LLM](https://img.shields.io/badge/LLM-Gemini%202.5%20Flash-8E75B2.svg)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)
+
 ### AI-Powered Assistant for Artificial Intelligence, AI Tools & Emerging Technologies using Retrieval-Augmented Generation (RAG)
 
 An advanced, production-ready AI Tech Assistant that provides detailed, cited answers to complex technical questions about Artificial Intelligence, Machine Learning, Generative AI, Large Language Models (LLMs), AI Agents, Prompt Engineering, and Vector Databases. 
@@ -190,3 +197,23 @@ Launch the Streamlit web server:
 streamlit run app.py
 ```
 This launches a browser session at `http://localhost:8501`.
+
+### 7. Run Automated Tests
+
+Execute the automated pytest suite (validating storage, chunking, retrieval context, and pipeline logic):
+```bash
+pytest tests/ -v
+```
+
+### 8. Docker Deployment
+
+Build the container image:
+```bash
+docker build -t ragbot .
+```
+
+Run the containerized application:
+```bash
+docker run -d -p 8501:8501 --env-file .env --name ragbot-app ragbot
+```
+Access the application at `http://localhost:8501`.

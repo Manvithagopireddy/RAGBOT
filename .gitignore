@@ -8,6 +8,8 @@ ENV/
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.coverage
 
 # Environment variables (contains API keys)
 .env
