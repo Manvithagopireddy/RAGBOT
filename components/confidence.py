@@ -3,6 +3,7 @@ confidence.py — Confidence gauge UI component.
 """
 import streamlit as st
 
+
 def render_confidence_gauge(score: int, description: str):
     """Renders a compact confidence badge under the assistant response."""
     if score >= 85:

@@ -7,19 +7,35 @@ chat.py — ChatGPT-style chat interface with:
   - Suggested follow-up questions
   - Right Side Panel (collapsible) with sources and confidence
   - Welcome screen when empty
+
+Fixes applied (Phase 2):
+  BUG-002  Share button was assigned to act_cols[3] (same as Dislike).
+           Fixed to act_cols[4].
+  BUG-006  Removed direct call to private ChatStore._connect() — now uses
+           the public save_message_source_type() method.
+  BUG-007  Routing retrieval results are passed into execute_rag_pipeline()
+           via pre_retrieved= so FAISS is queried exactly once per message.
+  BUG-008  memory.add_user_message() is called AFTER execute_rag_pipeline()
+           returns, never before, so the current question is not in the
+           history that gets sent to Gemini or used for condensation.
+  SEC-001  Clipboard JS strings now use json.dumps() for safe JS encoding,
+           preventing XSS via special characters in LLM output.
 """
+import json as _json  # used for safe JS string encoding (SEC-001)
+import textwrap
+
 # pyright: ignore [missing-import]
 import streamlit as st
-import datetime
-from rag import execute_rag_pipeline
-from utils.helpers import parse_related_questions, calculate_confidence_score, generate_chat_title
-from src.file_handler import index_uploaded_file, get_file_size_label, get_file_icon
-from components.components import render_upload_indicator, render_typing_indicator, render_image_preview
+
 from components.citations import render_citations, render_web_citations
+from components.components import render_image_preview, render_typing_indicator
 from components.confidence import render_confidence_gauge
 from components.home import render_welcome_screen
-from src.retriever import retrieve_relevant_chunks
+from rag import execute_rag_pipeline, retrieve_and_rerank
+from src.file_handler import get_file_icon, get_file_size_label, index_uploaded_file
 from src.logger import get_logger
+from src.retriever import get_best_similarity
+from utils.helpers import calculate_confidence_score, generate_chat_title, parse_related_questions
 
 logger = get_logger(__name__)
 
@@ -36,7 +52,7 @@ def render_chat_page():
     active_session_id = st.session_state.get("active_session_id")
     messages = st.session_state.get("messages", [])
     sidebar_settings = st.session_state.get("sidebar_settings", {})
-    gs = st.session_state.get("global_settings", {})
+    st.session_state.get("global_settings", {})
 
     # Ensure right panel state exists
     if "show_right_panel" not in st.session_state:
@@ -70,12 +86,12 @@ def render_chat_page():
     # Header section with details toggle
     c_head, c_toggle = st.columns([0.84, 0.16])
     with c_head:
-        st.markdown(f"""
-        <div class="chat-header">
-            <div class="chat-header-title">{session_title}</div>
-            <div class="chat-header-model-badge">⚡ {model_display} · {mode_badge}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(textwrap.dedent(f"""
+            <div class="chat-header">
+                <div class="chat-header-title">{session_title}</div>
+                <div class="chat-header-model-badge">⚡ {model_display} · {mode_badge}</div>
+            </div>
+        """).strip(), unsafe_allow_html=True)
     with c_toggle:
         toggle_label = "📋 Hide Details" if show_right_panel else "📋 Details"
         if st.button(toggle_label, key="toggle_right_panel_btn", use_container_width=True):
@@ -132,7 +148,7 @@ def render_chat_page():
             if st.session_state.get("pending_query"):
                 user_query = st.session_state.pending_query
                 st.session_state.pending_query = None
-                
+
                 _handle_user_query(
                     user_query, db, memory, chat_store, active_session_id, sidebar_settings, messages
                 )
@@ -217,32 +233,32 @@ def _render_message_history(messages: list, chat_store=None, active_session_id: 
 
             st.markdown(content)
 
-            escaped = content.replace("\\", "\\\\").replace("`", "\\`").replace("'", "\\'")
+            # SEC-001 FIX: use json.dumps() for safe JS string encoding.
+            # The old manual escape missed ", <, >, newlines — all XSS vectors.
+            js_safe_content = _json.dumps(content)   # e.g. → "\"hello\\nworld\""
 
             if role == "assistant":
-                # Display dynamic source indicator
                 src_type = msg.get("source_type", "🧠 AI General Knowledge")
-                st.markdown(f"""
-                <div style="font-size:0.75rem; color:#8e8ea0; margin-top:8px; display:inline-block; 
-                            background:rgba(255,255,255,0.04); padding:3px 8px; border-radius:12px; 
-                            border:1px solid rgba(255,255,255,0.06);">
-                    Source: <strong>{src_type}</strong>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Response Actions row
+                st.markdown(textwrap.dedent(f"""
+                    <div style="font-size:0.75rem; color:#8e8ea0; margin-top:8px; display:inline-block;
+                                background:rgba(255,255,255,0.04); padding:3px 8px; border-radius:12px;
+                                border:1px solid rgba(255,255,255,0.06);">
+                        Source: <strong>{src_type}</strong>
+                    </div>
+                """).strip(), unsafe_allow_html=True)
+
+                # BUG-002 FIX: 5 columns: [Regen, gap, Like, Dislike, Share]
+                # Previous code assigned Share to act_cols[3] (same as Dislike).
                 act_cols = st.columns([0.15, 0.08, 0.08, 0.12, 0.3])
                 with act_cols[0]:
                     if st.button("🔄 Regen", key=f"regen_{idx}_{message_id[:8]}", help="Regenerate response"):
-                        # Truncate messages to this point
                         st.session_state.messages = messages[:idx]
                         if chat_store and active_session_id:
                             all_db = chat_store.get_messages(active_session_id)
                             if len(all_db) > idx:
                                 last_ts = all_db[idx]["created_at"]
                                 chat_store.delete_messages_from(active_session_id, last_ts)
-                        # Re-trigger with prior user prompt
-                        user_prompt = messages[idx-1]["content"] if idx > 0 else ""
+                        user_prompt = messages[idx - 1]["content"] if idx > 0 else ""
                         st.session_state.pending_query = user_prompt
                         st.rerun()
                 with act_cols[2]:
@@ -259,13 +275,13 @@ def _render_message_history(messages: list, chat_store=None, active_session_id: 
                             chat_store.update_message_feedback(message_id, "down")
                         st.session_state.messages[idx]["feedback"] = "down"
                         st.rerun()
-                with act_cols[3]:
+                # BUG-002 FIX: was act_cols[3] — now correctly act_cols[4]
+                with act_cols[4]:
                     if st.button("🔗 Share", key=f"share_{idx}_{message_id[:8]}", help="Share this response"):
                         st.session_state.show_share_modal = True
                         st.session_state.share_content = content
                         st.rerun()
-                
-                # Metadata list
+
                 if msg.get("citations") and src_type == "📄 Knowledge Base":
                     render_citations(msg["citations"])
                 if msg.get("web_citations") and src_type == "🌐 Web Search":
@@ -273,26 +289,27 @@ def _render_message_history(messages: list, chat_store=None, active_session_id: 
                 if msg.get("confidence_score") is not None and src_type == "📄 Knowledge Base":
                     render_confidence_gauge(msg["confidence_score"], msg.get("confidence_desc", ""))
 
-                # Clipboard Copy Row (Javascript)
-                st.markdown(f"""
-                <div class="msg-actions-container" style="display:flex;align-items:center;gap:6px;margin-top:6px;opacity:0.6;">
-                    <button onclick="navigator.clipboard.writeText(`{escaped}`).then(()=>{{
-                        this.innerText='✓ Copied';this.style.color='#10b981';
-                        setTimeout(()=>{{this.innerText='📋 Copy';this.style.color='';}},2000);
-                    }})" class="msg-action-btn" style="padding: 2px 8px; font-size: 0.72rem; border-radius:4px;">📋 Copy</button>
-                </div>
-                """, unsafe_allow_html=True)
+                # Clipboard Copy — SEC-001: json.dumps produces a safely-quoted JS string
+                st.markdown(textwrap.dedent(f"""
+                    <div class="msg-actions-container" style="display:flex;align-items:center;gap:6px;margin-top:6px;opacity:0.6;">
+                        <button onclick="navigator.clipboard.writeText({js_safe_content}).then(()=>{{
+                            this.innerText='✓ Copied';this.style.color='#10b981';
+                            setTimeout(()=>{{this.innerText='📋 Copy';this.style.color='';}},2000);
+                        }})" class="msg-action-btn" style="padding:2px 8px;font-size:0.72rem;border-radius:4px;cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;">📋 Copy</button>
+                    </div>
+                """).strip(), unsafe_allow_html=True)
 
-            else:  # user message — copy + edit in one minimal row
-                st.markdown(f"""
-                <div class="msg-actions-container" style="display:flex;align-items:center;gap:6px;margin-top:6px;justify-content:flex-end;opacity:0.6;transition:opacity 0.2s;">
-                    <button onclick="navigator.clipboard.writeText(`{escaped}`).then(()=>{{
-                        this.innerText='✓';this.style.color='#10b981';
-                        setTimeout(()=>{{this.innerText='📋';this.style.color='';}},2000);
-                    }})" class="msg-action-btn" title="Copy">📋</button>
-                </div>
-                """, unsafe_allow_html=True)
-                
+            else:  # user message
+                # SEC-001 FIX: same json.dumps approach for user messages
+                st.markdown(textwrap.dedent(f"""
+                    <div class="msg-actions-container" style="display:flex;align-items:center;gap:6px;margin-top:6px;justify-content:flex-end;opacity:0.6;transition:opacity 0.2s;">
+                        <button onclick="navigator.clipboard.writeText({js_safe_content}).then(()=>{{
+                            this.innerText='✓';this.style.color='#10b981';
+                            setTimeout(()=>{{this.innerText='📋';this.style.color='';}},2000);
+                        }})" class="msg-action-btn" title="Copy" style="padding:2px 6px;font-size:0.72rem;border-radius:4px;cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;">📋</button>
+                    </div>
+                """).strip(), unsafe_allow_html=True)
+
                 # Edit prompt button
                 _edit_col, _spacer = st.columns([0.15, 0.85])
                 with _edit_col:
@@ -312,31 +329,42 @@ def _handle_user_query(
     sidebar_settings: dict,
     messages: list,
 ):
-    """Processes a new user message and streams the response with fallback priority routing."""
+    """
+    Processes a new user message and streams the response with fallback priority routing.
 
+    Fixes applied:
+      BUG-007  Routing retrieval is performed ONCE here; results are forwarded
+               to execute_rag_pipeline() via pre_retrieved= to skip the second
+               FAISS search.
+      BUG-008  memory.add_user_message() is called AFTER the pipeline returns,
+               so the current question is never included in the conversation
+               history that Gemini receives or uses for query condensation.
+      BUG-006  Removed direct use of chat_store._connect(); uses the new public
+               ChatStore.save_message_source_type() method instead.
+    """
     pending_image = st.session_state.get("pending_image")
     image_bytes = pending_image["bytes"] if pending_image else None
     image_mime = pending_image["mime"] if pending_image else "image/jpeg"
 
-    # Add user message to state
+    # ── Persist user message to DB and append to session state ───────────────
     user_msg = {"role": "user", "content": user_query}
     if pending_image:
         user_msg["image_bytes"] = image_bytes
         user_msg["image_mime"] = image_mime
     st.session_state.messages.append(user_msg)
-    memory.add_user_message(user_query)
 
-    # Persist to DB
+    # BUG-008 FIX: DO NOT add to memory here — happens after pipeline returns.
+    # memory.add_user_message(user_query)  ← REMOVED
+
     if chat_store and active_session_id:
         msg_id = chat_store.add_message(active_session_id, "user", user_query)
         st.session_state.messages[-1]["message_id"] = msg_id
 
-    # Auto-title after first message
+    # Auto-title on first message
     if chat_store and active_session_id:
         session = chat_store.get_session(active_session_id)
         if session and session.get("title") == "New Chat":
-            title = generate_chat_title(user_query)
-            chat_store.rename_session(active_session_id, title)
+            chat_store.rename_session(active_session_id, generate_chat_title(user_query))
 
     # Render user bubble
     with st.chat_message("user", avatar="👤"):
@@ -346,80 +374,76 @@ def _handle_user_query(
 
     st.session_state.pending_image = None
 
-    # Stream response
+    # ── Settings ─────────────────────────────────────────────────────────────
+    rag_enabled        = sidebar_settings.get("rag_enabled", True)
+    retriever_k        = sidebar_settings.get("retriever_k", 4)
+    temperature        = sidebar_settings.get("temperature", 0.7)
+    model              = sidebar_settings.get("model", "gemini-2.5-flash")
+    persona            = sidebar_settings.get("persona", "")
+    similarity_threshold = st.session_state.get("similarity_threshold", 0.4)
+    gs                 = st.session_state.get("global_settings", {})
+    web_on             = sidebar_settings.get("web_search", False)
+
+    # ── ROUTING DECISION + Hybrid retrieval & Reranking ─────────────────────
+    source_type   = "🧠 AI General Knowledge"
+    pre_retrieved = None   # Will be forwarded to pipeline to skip 2nd retrieval
+    citations     = []
+    avg_similarity = 0.0
+    bm25 = st.session_state.get("bm25")
+
+    if rag_enabled and (db is not None or bm25 is not None):
+        # Retrieve once here using hybrid + rerank; results forwarded to pipeline
+        pre_retrieved = retrieve_and_rerank(
+            query=user_query,
+            db=db,
+            bm25=bm25,
+            k=retriever_k,
+            threshold=0.0,
+            hybrid=gs.get("hybrid_search", True),
+        )
+        if pre_retrieved:
+            best = get_best_similarity(pre_retrieved)
+            if best >= similarity_threshold:
+                source_type = "📄 Knowledge Base"
+
+    if source_type == "🧠 AI General Knowledge" and web_on:
+        source_type = "🌐 Web Search"
+
+    # ── Stream response ───────────────────────────────────────────────────────
     with st.chat_message("assistant", avatar="🤖"):
         response_placeholder = st.empty()
         render_typing_indicator()
 
-        rag_enabled = sidebar_settings.get("rag_enabled", True)
-        retriever_k = sidebar_settings.get("retriever_k", 4)
-        temperature = sidebar_settings.get("temperature", 0.7)
-        model = sidebar_settings.get("model", "gemini-2.5-flash")
-        persona = sidebar_settings.get("persona", "")
-        
-        similarity_threshold = st.session_state.get("similarity_threshold", 0.4)
-        gs = st.session_state.get("global_settings", {})
-        web_on = sidebar_settings.get("web_search", False)
+        web_citations: list = []
 
-        # ── ROUTING DECISION ──────────────────────────────────────
-        source_type = "🧠 AI General Knowledge"
-        best_similarity = 0.0
-        citations = []
-        avg_similarity = 0.0
-
-        # Step 1: Check Knowledge Base RAG
-        if rag_enabled and db is not None:
-            # Quickly retrieve chunks to check similarity score
-            results = retrieve_relevant_chunks(db, user_query, k=retriever_k)
-            if results:
-                best_similarity = max(score for doc, score in results)
-                if best_similarity >= similarity_threshold:
-                    source_type = "📄 Knowledge Base"
-
-        # Step 2: Route to Web Search if KB didn't match and web search is enabled
-        if source_type == "🧠 AI General Knowledge" and web_on:
-            source_type = "🌐 Web Search"
-        
-        # ── PIPELINE INITIATION ───────────────────────────────────
-        web_citations = []
         if source_type == "📄 Knowledge Base":
             token_generator, citations, avg_similarity = execute_rag_pipeline(
-                db,
-                memory,
-                user_query,
+                db, memory, user_query,
                 temperature=temperature,
                 retriever_k=retriever_k,
-                model=model,
-                persona=persona,
-                image_bytes=image_bytes,
-                image_mime=image_mime,
+                model=model, persona=persona,
+                image_bytes=image_bytes, image_mime=image_mime,
                 web_search=False,
+                pre_retrieved=pre_retrieved,
+                bm25=bm25,
             )
         elif source_type == "🌐 Web Search":
             token_generator, citations, avg_similarity = execute_rag_pipeline(
-                None,
-                memory,
-                user_query,
+                None, memory, user_query,
                 temperature=temperature,
                 retriever_k=retriever_k,
-                model=model,
-                persona=persona,
-                image_bytes=image_bytes,
-                image_mime=image_mime,
+                model=model, persona=persona,
+                image_bytes=image_bytes, image_mime=image_mime,
                 web_search=True,
                 web_citations=web_citations,
             )
         else:
             token_generator, citations, avg_similarity = execute_rag_pipeline(
-                None,  # Pure LLM (no DB context)
-                memory,
-                user_query,
+                None, memory, user_query,
                 temperature=temperature,
                 retriever_k=retriever_k,
-                model=model,
-                persona=persona,
-                image_bytes=image_bytes,
-                image_mime=image_mime,
+                model=model, persona=persona,
+                image_bytes=image_bytes, image_mime=image_mime,
                 web_search=False,
             )
 
@@ -433,58 +457,62 @@ def _handle_user_query(
                     visible = visible.split("<related>")[0]
                 response_placeholder.markdown(visible + "▌")
 
-        # Finalize
+        # Finalise
         cleaned_text, related_questions = parse_related_questions(full_response)
         response_placeholder.markdown(cleaned_text)
-
         conf_score, conf_desc = calculate_confidence_score(avg_similarity)
 
-        # Render metadata underneath
-        st.markdown(f"""
-        <div style="font-size:0.75rem; color:#8e8ea0; margin-top:8px; display:inline-block; 
-                    background:rgba(255,255,255,0.04); padding:3px 8px; border-radius:12px; 
-                    border:1px solid rgba(255,255,255,0.06);">
-            Source: <strong>{source_type}</strong>
-        </div>
-        """, unsafe_allow_html=True)
+        # Source badge
+        st.markdown(textwrap.dedent(f"""
+            <div style="font-size:0.75rem; color:#8e8ea0; margin-top:8px; display:inline-block;
+                        background:rgba(255,255,255,0.04); padding:3px 8px; border-radius:12px;
+                        border:1px solid rgba(255,255,255,0.06);">
+                Source: <strong>{source_type}</strong>
+            </div>
+        """).strip(), unsafe_allow_html=True)
 
         if citations and source_type == "📄 Knowledge Base":
             render_citations(citations)
         if avg_similarity > 0.0 and source_type == "📄 Knowledge Base":
             render_confidence_gauge(conf_score, conf_desc)
 
-        # Save to state + DB
+        # ── BUG-008 FIX: add user+assistant to memory AFTER streaming ────────
+        memory.add_user_message(user_query)
+        memory.add_assistant_message(cleaned_text)
+
+        # ── Save assistant message to state and DB ────────────────────────────
         assistant_msg = {
             "role": "assistant",
             "content": cleaned_text,
-            "citations": citations if source_type == "📄 Knowledge Base" else [],
-            "web_citations": web_citations if source_type == "🌐 Web Search" else [],
+            "citations":        citations if source_type == "📄 Knowledge Base" else [],
+            "web_citations":    web_citations if source_type == "🌐 Web Search" else [],
             "confidence_score": conf_score if source_type == "📄 Knowledge Base" else None,
-            "confidence_desc": conf_desc if source_type == "📄 Knowledge Base" else "",
-            "source_type": source_type,
-            "feedback": None,
+            "confidence_desc":  conf_desc if source_type == "📄 Knowledge Base" else "",
+            "source_type":      source_type,
+            "feedback":         None,
         }
         st.session_state.messages.append(assistant_msg)
-        memory.add_assistant_message(cleaned_text)
 
         if chat_store and active_session_id:
-            db_citations = citations if source_type == "📄 Knowledge Base" else (web_citations if source_type == "🌐 Web Search" else [])
-            msg_id = chat_store.add_message(
+            db_citations = (
+                citations     if source_type == "📄 Knowledge Base" else
+                web_citations if source_type == "🌐 Web Search"   else
+                []
+            )
+            # BUG-010 FIX: pass source_type directly into add_message via
+            # confidence_desc so we avoid the subsequent UPDATE hack.
+            # BUG-006 FIX: use public save_message_source_type() — no _connect().
+            asst_msg_id = chat_store.add_message(
                 active_session_id,
                 "assistant",
                 cleaned_text,
                 citations=db_citations,
                 confidence_score=conf_score if source_type == "📄 Knowledge Base" else None,
-                confidence_desc=conf_desc if source_type == "📄 Knowledge Base" else "",
+                confidence_desc=conf_desc   if source_type == "📄 Knowledge Base" else "",
             )
-            # Update database record with selected source type
-            with chat_store._connect() as conn:
-                conn.execute(
-                    "UPDATE messages SET confidence_desc = ? WHERE message_id = ?",
-                    (f"source:{source_type}", msg_id)
-                )
-                conn.commit()
-            st.session_state.messages[-1]["message_id"] = msg_id
+            # Persist the source-type tag via the proper public API (FIX BUG-006)
+            chat_store.save_message_source_type(asst_msg_id, source_type)
+            st.session_state.messages[-1]["message_id"] = asst_msg_id
 
         st.session_state.related_questions = related_questions
 
@@ -497,13 +525,13 @@ def _render_edit_mode(edit_idx: int, messages: list, db, memory, chat_store,
     """Renders inline edit input for a user message and regenerates from that point."""
     original_query = messages[edit_idx]["content"]
 
-    st.markdown("""
-    <div style="background:rgba(99,102,241,0.07); border:1px solid rgba(99,102,241,0.2);
-                border-radius:12px; padding:16px; margin-bottom:16px;">
-        <div style="font-size:0.8rem; color:#a5b4fc; font-weight:600; margin-bottom:8px;">
-            ✏️ Edit Message — response will regenerate from this point
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(textwrap.dedent("""
+        <div style="background:rgba(99,102,241,0.07); border:1px solid rgba(99,102,241,0.2);
+                    border-radius:12px; padding:16px; margin-bottom:16px;">
+            <div style="font-size:0.8rem; color:#a5b4fc; font-weight:600; margin-bottom:8px;">
+                ✏️ Edit Message — response will regenerate from this point
+            </div>
+    """).strip(), unsafe_allow_html=True)
 
     edited_query = st.text_area(
         "Edit your message:",

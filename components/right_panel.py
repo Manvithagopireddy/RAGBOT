@@ -11,8 +11,10 @@ Contains:
   - Mini Analytics snapshot (total chats, total messages, positive feedback ratio)
 """
 # pyright: ignore [missing-import]
-import streamlit as st
 import datetime
+
+import streamlit as st
+
 from src.logger import get_logger
 
 logger = get_logger(__name__)
@@ -20,9 +22,9 @@ logger = get_logger(__name__)
 
 def render_right_panel():
     """Renders the collateral sidebar details for the active conversation."""
-    
+
     st.markdown("""
-    <div style="padding: 14px 16px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
+    <div style="padding: 14px 16px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
                 background: rgba(15, 17, 26, 0.4); backdrop-filter: blur(10px);">
         <div style="font-size: 1.1rem; font-weight: 700; color: #ececec; font-family: 'Outfit', sans-serif;">
             📋 Chat Details
@@ -30,13 +32,13 @@ def render_right_panel():
     </div>
     <div style="height: 12px;"></div>
     """, unsafe_allow_html=True)
-    
+
     messages = st.session_state.get("messages", [])
     chat_store = st.session_state.get("chat_store")
     active_session_id = st.session_state.get("active_session_id")
     sidebar_settings = st.session_state.get("sidebar_settings", {})
     gs = st.session_state.get("global_settings", {})
-    
+
     # Fetch last assistant message for Sources and Confidence
     last_assistant_msg = None
     if messages:
@@ -51,7 +53,7 @@ def render_right_panel():
         web_citations = last_assistant_msg.get("web_citations", [])
         conf_score = last_assistant_msg.get("confidence_score")
         conf_desc = last_assistant_msg.get("confidence_desc", "")
-        
+
         # Determine Source Type
         if citations:
             source_type_label = "📄 Knowledge Base"
@@ -62,14 +64,14 @@ def render_right_panel():
         else:
             source_type_label = "🧠 AI General Knowledge"
             source_color = "#a78bfa"
-            
+
         st.markdown(f"""
         <div class="glass-card" style="margin: 0 12px 14px 12px; border-left: 4px solid {source_color};">
             <div style="font-size: 0.72rem; color: #8e8ea0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Source Type</div>
             <div style="font-size: 0.95rem; font-weight: 700; color: #ececec; margin-top: 2px;">{source_type_label}</div>
         </div>
         """, unsafe_allow_html=True)
-        
+
         # Confidence
         if conf_score is not None:
             dot_color = "#10b981" if conf_score >= 85 else "#f59e0b" if conf_score >= 65 else "#ef4444"
@@ -83,14 +85,14 @@ def render_right_panel():
                 <div style="font-size: 0.76rem; color: #6e6e80; margin-top: 4px;">{conf_desc}</div>
             </div>
             """, unsafe_allow_html=True)
-            
+
         # Sources List
         if citations or web_citations:
             with st.expander("📚 Sources Retrieved", expanded=True):
                 if citations:
                     for i, cite in enumerate(citations[:4]):
                         st.markdown(f"""
-                        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); 
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
                                     border-radius: 8px; padding: 8px; margin-bottom: 6px; font-size: 0.78rem;">
                             <div style="font-weight: 600; color: #38bdf8;">[{i+1}] {cite['source']} (Page {cite['page']})</div>
                             <div style="color: #8e8ea0; margin-top: 3px; font-style: italic; line-height: 1.3;">
@@ -99,9 +101,9 @@ def render_right_panel():
                         </div>
                         """, unsafe_allow_html=True)
                 if web_citations:
-                    for i, cite in enumerate(web_citations[:4]):
+                    for _i, cite in enumerate(web_citations[:4]):
                         st.markdown(f"""
-                        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); 
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
                                     border-radius: 8px; padding: 8px; margin-bottom: 6px; font-size: 0.78rem;">
                             <div style="font-weight: 600; color: #34d399;">
                                 <a href="{cite.get('uri', '#')}" target="_blank" style="color: #34d399; text-decoration: none;">🔗 {cite.get('title', 'Web Source')[:45]}</a>
@@ -132,7 +134,7 @@ def render_right_panel():
                     created_str = created_dt.strftime("%Y-%m-%d %H:%M")
                 except Exception:
                     created_str = sess["created_at"]
-                
+
                 st.markdown(f"""
                 <div style="font-size: 0.8rem; line-height: 1.6; color: #8e8ea0;">
                     <div style="display:flex; justify-content:space-between;">
@@ -176,15 +178,16 @@ def render_right_panel():
     with st.expander("📚 Knowledge Base Info", expanded=False):
         db = st.session_state.get("db")
         db_status = "🟢 Vector Store Loaded" if db is not None else "🔴 Vector Store Empty/Offline"
-        
+
         # Check chunk sizes
         import os
+
         from config.settings import VECTOR_STORE_DIR
         index_size_mb = 0.0
         faiss_file = VECTOR_STORE_DIR / "index.faiss"
         if faiss_file.exists():
             index_size_mb = os.path.getsize(str(faiss_file)) / (1024 * 1024)
-            
+
         st.markdown(f"""
         <div style="font-size: 0.8rem; line-height: 1.6; color: #8e8ea0;">
             <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
@@ -217,7 +220,7 @@ def render_right_panel():
             st.markdown("<div style='font-size:0.78rem; color:#6e6e80; font-style:italic;'>No active system persona (Default BotTech).</div>", unsafe_allow_html=True)
         else:
             st.markdown(f"""
-            <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.15); 
+            <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.15);
                         border-radius: 8px; padding: 10px; font-size: 0.76rem; color: #c084fc; max-height: 150px; overflow-y: auto; line-height: 1.4;">
                 {persona}
             </div>
@@ -228,7 +231,7 @@ def render_right_panel():
         rag_on = "Enabled" if sidebar_settings.get("rag_enabled", True) else "Disabled"
         web_on = "Enabled" if sidebar_settings.get("web_search", False) else "Disabled"
         hybrid_on = "Enabled" if gs.get("hybrid_search", True) else "Disabled"
-        
+
         st.markdown(f"""
         <div style="font-size: 0.8rem; line-height: 1.6; color: #8e8ea0;">
             <div style="display:flex; justify-content:space-between;">
@@ -272,7 +275,7 @@ def render_right_panel():
             t_down = analytics_data.get("thumbs_down", 0)
             t_fb = t_up + t_down
             satisfaction = int((t_up / t_fb) * 100) if t_fb > 0 else 100
-            
+
             st.markdown(f"""
             <div style="font-size: 0.8rem; line-height: 1.6; color: #8e8ea0;">
                 <div style="display:flex; justify-content:space-between;">

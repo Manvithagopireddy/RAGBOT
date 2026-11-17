@@ -1,219 +1,253 @@
-# 🤖 AI Tech Assistant
+# 🤖 RAGBOT — Enterprise Hybrid Retrieval-Augmented Generation Platform
 
 [![CI Pipeline](https://github.com/Manvithagopireddy/RAGBOT/actions/workflows/ci.yml/badge.svg)](https://github.com/Manvithagopireddy/RAGBOT/actions)
-![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-FF4B4B.svg)
-![Vector DB](https://img.shields.io/badge/Vector%20DB-FAISS-green.svg)
-![LLM](https://img.shields.io/badge/LLM-Gemini%202.5%20Flash-8E75B2.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)
+![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB.svg?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6.svg?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5.0+-646CFF.svg?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4+-38B2AC.svg?logo=tailwind-css&logoColor=white)
+![FAISS](https://img.shields.io/badge/Vector_DB-FAISS-00599C.svg)
+![BM25](https://img.shields.io/badge/Lexical-BM25Okapi-orange.svg)
+![Reranker](https://img.shields.io/badge/Reranker-Cross--Encoder-purple.svg)
+![LLM](https://img.shields.io/badge/LLM-Gemini_2.5_Flash-8E75B2.svg?logo=google&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-178_Passed-success.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
-### AI-Powered Assistant for Artificial Intelligence, AI Tools & Emerging Technologies using Retrieval-Augmented Generation (RAG)
-
-An advanced, production-ready AI Tech Assistant that provides detailed, cited answers to complex technical questions about Artificial Intelligence, Machine Learning, Generative AI, Large Language Models (LLMs), AI Agents, Prompt Engineering, and Vector Databases. 
-
-It implements a local **Retrieval-Augmented Generation (RAG)** architecture using a **FAISS vector database** populated from PDF documentations, and resolves queries with high factual grounding using the **Google Gemini 2.5 Flash** model.
+> **RAGBOT** is a production-grade, portfolio-quality Retrieval-Augmented Generation (RAG) platform designed to deliver factual, cited answers to complex technical questions. It combines dense semantic search (FAISS) with sparse lexical search (BM25) via Reciprocal Rank Fusion (RRF), Cross-Encoder reranking, conversation-aware query rephrasing, and real-time Server-Sent Events (SSE) streaming.
 
 ---
 
-## 🏗️ Architecture
+## 🌟 Key Features
 
-The pipeline processes user questions dynamically to produce cited, high-confidence answers:
+- **⚡ Hybrid Retrieval Engine**: Combines dense semantic vector search (`all-MiniLM-L6-v2` with FAISS) and sparse lexical search (`BM25Okapi`) using **Reciprocal Rank Fusion (RRF)** ($k=60$) to balance conceptual recall with keyword precision.
+- **🎯 Cross-Encoder Reranker**: Optional second-stage reranking via `ms-marco-MiniLM-L-6-v2` to compute deep cross-attention between queries and passages for optimal top-$K$ precision.
+- **🔄 Real-Time SSE Streaming**: Low-latency token streaming from Google Gemini 2.5 Flash via Server-Sent Events (SSE).
+- **🛡️ Production Security & Guardrails**:
+  - In-memory sliding-window rate limiting per client IP.
+  - JWT authentication (HMAC-SHA256) and `bcrypt` password hashing (12 rounds).
+  - Multi-tenant document ownership and session isolation.
+  - Prompt injection defense using guarded boundary tags.
+  - Strict MIME magic-byte validation and path traversal defenses.
+- **🎨 Modern React + TypeScript SPA**: Clean, dark-mode interface built with React 18, Vite, Tailwind CSS, Lucide icons, syntax-highlighted code blocks, copy-to-clipboard, parameter tuning, and citation inspection.
+- **📊 Interactive Streamlit UI**: Fully maintained, classic analytics and chat dashboard for interactive exploration and prototyping.
+- **🗄️ Relational Persistence Tier**: SQLite schema with enforced Foreign Keys (`PRAGMA foreign_keys = ON`), relational indexes, and WAL journal mode.
+- **📈 Rigorous RAG Evaluation Suite**: Quantitative evaluation harness measuring 7 metrics across 4 retrieval configurations on reproducible benchmarks.
+- **🧪 Comprehensive Testing & CI**: 178 passing Pytest tests, Ruff linter, and MyPy strict type checks in GitHub Actions.
+
+---
+
+## 🏗️ Architecture Overview
+
+```mermaid
+flowchart TD
+    subgraph Frontend["Presentation Layer"]
+        ReactApp["React 18 + Vite SPA\n(TypeScript, Tailwind CSS)"]
+        StreamlitApp["Streamlit Dashboard\n(Classic UI)"]
+    end
+
+    subgraph API["FastAPI Backend (Port 8000)"]
+        Auth["JWT Auth & Security"]
+        RateLimit["Rate Limiter (Sliding Window)"]
+        ChatRouter["/api/v1/chat (SSE Stream)"]
+        DocRouter["/api/v1/documents"]
+        SessionRouter["/api/v1/sessions"]
+        DiagRouter["/api/v1/diagnostics"]
+    end
+
+    subgraph RAGCore["Modular RAG Pipeline"]
+        QueryRewriter["Conversation-Aware Query Rewriter"]
+        BM25["BM25 Lexical Retriever"]
+        FAISS["FAISS Dense Retriever"]
+        RRF["Reciprocal Rank Fusion (RRF)"]
+        Reranker["Cross-Encoder Reranker"]
+        ContextMgr["Guarded Context Manager"]
+    end
+
+    subgraph LLM["Language Model"]
+        Gemini["Google Gemini 2.5 Flash"]
+    end
+
+    subgraph Persistence["Storage Tier"]
+        SQLite[("SQLite Relational DB\n(Users, Sessions, Messages, Docs)")]
+        Vectors[("FAISS Index + BM25 Artifacts")]
+    end
+
+    ReactApp -->|REST / SSE| API
+    StreamlitApp -->|Direct Service Call| RAGCore
+
+    API --> Auth --> RateLimit
+    RateLimit --> ChatRouter & DocRouter & SessionRouter & DiagRouter
+
+    ChatRouter --> QueryRewriter
+    QueryRewriter --> BM25 & FAISS
+    BM25 & FAISS --> RRF
+    RRF --> Reranker
+    Reranker --> ContextMgr
+    ContextMgr --> Gemini
+    Gemini -->|Streamed Tokens| ChatRouter
+
+    DocRouter --> Ingest["Ingestion Pipeline"]
+    Ingest --> Vectors
+    API --> SQLite
+```
+
+---
+
+## 📊 RAG Benchmark & Evaluation Results
+
+Evaluated across 14 complex technical queries against ground-truth documents ($K=4$):
+
+| Configuration | Precision@4 | Recall@4 | MRR | Faithfulness | Relevance | Retrieval Latency |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **1. FAISS Baseline** | 0.3571 | **1.0000** | **1.0000** | **1.0000** | **0.5631** | 15.95 ms |
+| **2. Improved Chunking** | **0.6786** | **1.0000** | 0.9643 | **1.0000** | 0.3931 | 15.04 ms |
+| **3. Hybrid BM25 + FAISS** | 0.6071 | **1.0000** | **1.0000** | **1.0000** | 0.4010 | **14.22 ms** |
+| **4. Hybrid + Reranker** | 0.5000 | **1.0000** | **1.0000** | **1.0000** | 0.3979 | 3327.57 ms* |
+
+*Detailed methodology and metric formulas are documented in [docs/rag_evaluation.md](docs/rag_evaluation.md).*
+
+---
+
+## 🗂️ Project Directory Structure
 
 ```text
-                     AI Documentation
-                 Research Papers / PDFs
-                          │
-                          ▼
-                  PyPDFLoader (LangChain)
-                          │
-                          ▼
-          RecursiveCharacterTextSplitter
-                          │
-                          ▼
-        HuggingFace Sentence Transformers
-                          │
-                          ▼
-                FAISS Vector Database
-                          │
-─────────────────────────────────────────────────────
-                    User Question
-                          │
-                          ▼
-           Rephrase Standalone Question
-                          │
-                          ▼
-          Convert Question into Embedding
-                          │
-                          ▼
-           Retrieve Relevant Chunks (Top K)
-                          │
-                          ▼
-          Prompt + Retrieved AI Context
-                          │
-                          ▼
-             Google Gemini 2.5 Flash
-                          │
-                          ▼
-               AI Generated Response
+RAGBOT/
+├── .github/workflows/ci.yml       # CI/CD: Ruff, MyPy, Pytest, Coverage, Docker
+├── api/                           # FastAPI Backend Application
+│   ├── routes/                    # Versioned Routers (/chat, /documents, etc.)
+│   ├── dependencies.py            # Dependency Injection & Security
+│   ├── schemas.py                 # Pydantic v2 Models
+│   └── main.py                    # Application Entrypoint & Middleware
+├── components/                    # Streamlit UI Components
+├── config/                        # Settings & Prompts
+├── docs/                          # Technical Documentation
+│   ├── architecture.md            # Detailed Architecture & Sequence Diagrams
+│   ├── api_documentation.md       # OpenAPI & cURL Examples
+│   ├── rag_evaluation.md          # Evaluation Methodology & Metrics
+│   ├── deployment.md              # Docker & Production Hardening Guide
+│   └── CODEBASE_AUDIT.md          # Complete Phase 1 Audit
+├── evals/                         # Reproducible Evaluation Harness
+│   ├── dataset.jsonl              # 14 Curated Benchmark Queries
+│   ├── metrics.py                 # Precision@K, Recall@K, MRR, Faithfulness
+│   ├── run_evaluation.py          # Benchmark Runner
+│   └── results/                   # JSON Benchmark Output
+├── frontend/                      # React 18 + TypeScript + Vite SPA
+│   ├── src/
+│   │   ├── api/client.ts          # Axios Client & SSE EventStream Reader
+│   │   ├── components/            # Navbar, Sidebar, CitationsPanel
+│   │   ├── pages/                 # ChatPage, DocumentsPage, Diagnostics, etc.
+│   │   └── types/                 # TypeScript Interfaces
+│   ├── Dockerfile                 # Multi-stage Nginx Container
+│   └── package.json
+├── services/                      # Domain Services (RAG, Ingestion, Retrieval)
+├── src/                           # RAG Algorithms & Helpers
+│   ├── bm25_retriever.py          # BM25 Lexical Retrieval
+│   ├── hybrid_retriever.py        # Reciprocal Rank Fusion (RRF)
+│   ├── reranker.py                # Cross-Encoder Reranker
+│   ├── context_manager.py         # Guarded Prompt Construction
+│   ├── security.py                # File Validation & Sanitization
+│   └── text_splitter.py           # Token-Aware Document Chunker
+├── tests/                         # Pytest Test Suite (178 Tests)
+├── app.py                         # Classic Streamlit Application
+├── docker-compose.yml             # Multi-Container Compose Configuration
+├── Dockerfile                     # Multi-Stage Backend Dockerfile
+├── pyproject.toml                 # Ruff & Tooling Configuration
+├── requirements.txt               # Locked Backend Dependencies
+├── storage.py                     # SQLite WAL Storage Tier
+└── vectorstore.py                 # FAISS Index Manager
 ```
 
 ---
 
-## ✨ Features
+## 🚀 Quickstart Guide
 
-- **Interactive AI Chat:** A ChatGPT-style streaming UI with Markdown formatting, clean headers, custom user/assistant avatars, copy/download utilities, and code block formatting.
-- **Resilient Hybrid Search Routing:** Dynamically prioritizes local **FAISS Knowledge Base** queries. If similarity scores fall below the configurable threshold, the pipeline automatically falls back to **Google Search Grounding** (if enabled), with a second fail-safe fallback to **pure LLM** generation if search APIs are unsupported or throw errors.
-- **Universal Responsiveness:** Designed with custom media queries supporting desktop, tablet, and mobile breakpoints. Stacks columns vertically on tablet/mobile screens (pushing the Details panel cleanly to the bottom) while maintaining inline horizontal action button rows inside chat messages.
-- **Persistent State & Citation Restoration:** Persists session settings (model, temperature, active AI persona) and full chat history inside a local **SQLite database**, correctly parsing and restoring source types (`📄 Knowledge Base`, `🌐 Web Search`, `🧠 AI General Knowledge`), web source links, and confidence parameters on load.
-- **Dynamic Retrieval Citations:** Highlights precisely which source documents (and which specific pages/URLs) were retrieved to compile the answers.
-- **Retrieval Confidence Gauge:** Shows a percentage confidence rating based on vector database distance metrics.
-- **Suggested Follow-up Questions:** Dynamically extracts related recommendations from responses, enabling easy conversational progression.
-- **Index Management:** Directly rebuild and re-index your vector database from the sidebar configuration panel.
-- **Premium Glassmorphic Styling:** A modern, custom dark/light theme complete with fluid transitions, blur filters, and vibrant color gradients.
+### 1. Prerequisites
+- Python 3.11+
+- Node.js 18+ and npm 9+
+- A Google Gemini API Key ([Get one here](https://aistudio.google.com/))
 
----
-
-## 📂 Folder Structure
-
-```text
-AI_Tech_Assistant/
-│
-├── app.py                     # Main application entry point
-├── requirements.txt           # Project dependencies
-├── README.md                  # Project documentation
-├── .env                       # Local environment configurations (private)
-├── .env.example               # Example configurations
-├── .gitignore                 # Files excluded from git
-│
-├── config/
-│   ├── settings.py            # Global variables, paths, and hyperparameters
-│   └── prompts.py             # System prompt templates
-│
-├── knowledge_base/            # Folder containing indexing PDFs
-│   ├── AI_Basics.pdf
-│   ├── LLM_Guide.pdf
-│   └── ...
-│
-├── vector_store/              # FAISS index binary caches
-│   ├── index.faiss
-│   └── index.pkl
-│
-├── src/                       # Backend RAG logic
-│   ├── document_loader.py     # PDF parsing loader
-│   ├── text_splitter.py       # Recursive text splitter
-│   ├── embeddings.py          # Sentence-Transformers embeddings loader
-│   ├── vector_store.py        # FAISS manager (build, load, save)
-│   ├── retriever.py           # Context retrieval and citation utility
-│   ├── llm.py                 # ChatGoogleGenerativeAI instantiator
-│   ├── memory.py              # Contextual message logs storage
-│   ├── rag_pipeline.py        # End-to-end retrieval and streaming manager
-│   ├── utils.py               # Formatting, confidence & parsing utilities
-│   └── logger.py              # Central log system
-│
-├── ui/                        # Frontend components
-│   ├── home.py                # Dashboard page with suggestions
-│   ├── chat.py                # Main chat window with stream rendering
-│   ├── comparison.py          # Tool comparison matrix page
-│   ├── sidebar.py             # Control configurations sidebar
-│   └── styles.css             # Custom glassmorphic CSS styles
-│
-└── scripts/                   # Setup and verification tools
-    ├── generate_mock_knowledge.py   # Seeding script to create realistic PDFs
-    └── test_pipeline.py             # Independent RAG pipeline testing script
-```
-
----
-
-## 🛠️ Technology Stack
-
-| Category              | Technology                        |
-| --------------------- | --------------------------------- |
-| Programming Language  | Python 3.14                       |
-| Frontend              | Streamlit                         |
-| LLM                   | Google Gemini 2.5 Flash           |
-| Framework             | LangChain                         |
-| Embeddings            | HuggingFace Sentence Transformers |
-| Vector Database       | FAISS                             |
-| Document Loader       | PyPDFLoader                       |
-| Text Splitter         | RecursiveCharacterTextSplitter    |
-| PDF Processing        | PyPDF                             |
-| Environment Variables | python-dotenv                     |
-| Styling               | CSS + HTML                        |
-
----
-
-## 🚀 Setup & Execution
-
-### 1. Create a Virtual Environment
-
-Initialize the virtual environment:
+### 2. Environment Setup
 ```bash
-python -m venv venv
+git clone https://github.com/Manvithagopireddy/RAGBOT.git
+cd RAGBOT
+
+cp .env.example .env
+# Edit .env and insert your GEMINI_API_KEY
 ```
 
-Activate it:
-- **Windows:**
-  ```powershell
-  venv\Scripts\activate
-  ```
-- **macOS / Linux:**
-  ```bash
-  source venv/bin/activate
-  ```
-
-### 2. Install Dependencies
-
-Install all dependencies in the virtual environment:
+### 3. Backend Setup
 ```bash
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .\.venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Start FastAPI Server (Port 8000)
+uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 3. Configure API Key
-
-Create a `.env` file in the root directory (based on `.env.example`) and add your Google Gemini API Key:
-```env
-GOOGLE_API_KEY=YOUR_GEMINI_API_KEY
-```
-
-### 4. Seed the Knowledge Base
-
-Populate `knowledge_base/` with high-quality technical PDFs:
+### 4. Frontend Setup (React SPA)
 ```bash
-python scripts/generate_mock_knowledge.py
-```
-This script programmatically writes 14 structured, highly-detailed documents concerning Agent workflows, MCP, RAG, embeddings, APIs, and models.
-
-### 5. Run the Backend Diagnostic Test (Optional)
-
-Verify that your vector retrieval and Gemini connections work in isolation:
-```bash
-python scripts/test_pipeline.py
+cd frontend
+npm install
+npm run dev
+# Access UI at http://localhost:5173
 ```
 
-### 6. Run the Application
-
-Launch the Streamlit web server:
+### 5. Classic Streamlit Dashboard (Optional)
 ```bash
 streamlit run app.py
+# Access Streamlit at http://localhost:8501
 ```
-This launches a browser session at `http://localhost:8501`.
 
-### 7. Run Automated Tests
+---
 
-Execute the automated pytest suite (validating storage, chunking, retrieval context, and pipeline logic):
+## 🐳 Docker Deployment
+
+Run the complete multi-tier stack with a single command:
+
 ```bash
+docker compose up --build -d
+```
+
+| Service | Container URL | Purpose |
+|---|---|---|
+| **React Frontend** | `http://localhost:5173` | Production React SPA served via Nginx |
+| **FastAPI Backend** | `http://localhost:8000` | REST API & Swagger UI (`/docs`) |
+| **Streamlit UI** | `http://localhost:8501` | Interactive dashboard |
+
+---
+
+## 🧪 Testing & Code Quality
+
+Run the comprehensive test suite locally:
+
+```bash
+# Run 178 unit and integration tests
 pytest tests/ -v
+
+# Run Ruff linter
+ruff check .
+
+# Run MyPy type checker
+mypy api/ services/ src/
 ```
 
-### 8. Docker Deployment
+---
 
-Build the container image:
-```bash
-docker build -t ragbot .
-```
+## 📚 Documentation Reference
 
-Run the containerized application:
-```bash
-docker run -d -p 8501:8501 --env-file .env --name ragbot-app ragbot
-```
-Access the application at `http://localhost:8501`.
+- **[System Architecture](docs/architecture.md)**: Deep dive into the hybrid retrieval pipeline, sequence diagrams, and database schemas.
+- **[API Specification](docs/api_documentation.md)**: REST endpoints, request/response bodies, SSE stream format, and cURL examples.
+- **[RAG Evaluation](docs/rag_evaluation.md)**: Full benchmark methodology, mathematical metric formulas, and empirical findings.
+- **[Deployment & Hardening](docs/deployment.md)**: Production deployment, Docker configuration, and security checklists.
+- **[Codebase Audit](docs/CODEBASE_AUDIT.md)**: Initial Phase 1 audit and architectural gap analysis.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

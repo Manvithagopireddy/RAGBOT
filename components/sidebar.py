@@ -7,12 +7,13 @@ sidebar.py — ChatGPT-style sidebar with:
   - Active highlights and popover menu (Rename, Pin, Favorite, Duplicate, Archive, Delete)
 """
 # pyright: ignore [missing-import]
-import streamlit as st
 import datetime
-from vectorstore import build_vector_store
-from utils.helpers import format_chat_export_markdown, format_chat_export_json
-from components.settings import render_settings_modal, PRESET_PERSONAS
+
+import streamlit as st
+
+from components.settings import render_settings_modal
 from src.logger import get_logger
+from utils.helpers import format_chat_export_json, format_chat_export_markdown
 
 logger = get_logger(__name__)
 
@@ -20,7 +21,7 @@ logger = get_logger(__name__)
 def render_sidebar() -> dict:
     """Renders the full ChatGPT-style sidebar. Returns model config settings dict."""
     settings = {}
-    
+
     # Ensure active session settings exist
     if "sidebar_settings" not in st.session_state:
         st.session_state.sidebar_settings = {
@@ -31,13 +32,13 @@ def render_sidebar() -> dict:
             "web_search": False,
             "persona": "",
         }
-    
+
     settings = st.session_state.sidebar_settings
 
     # Custom sidebar width injection from global settings
     gs = st.session_state.get("global_settings", {})
     sidebar_w = gs.get("sidebar_width", 260)
-    
+
     st.markdown(f"""
     <style>
         [data-testid="stSidebar"] {{
@@ -78,7 +79,7 @@ def render_sidebar() -> dict:
         if chat_store:
             # Refresh sessions
             all_sessions = chat_store.get_all_sessions()
-            
+
             if search_query and search_query.strip():
                 results = chat_store.search_sessions(search_query.strip())
                 # Filter out archived results
@@ -112,17 +113,17 @@ def render_sidebar() -> dict:
 
         if st.button("⚙️ Settings", use_container_width=True):
             render_settings_modal()
-        
+
         if st.button("📁 Export Chats", use_container_width=True):
             _export_chats_modal()
-            
+
         st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
-        
+
         # ── STATUS FOOTER ─────────────────────────────────────────
         db_ok = st.session_state.get("db") is not None
         status_color = "#10b981" if db_ok else "#ef4444"
         status_text = "Vector DB Ready" if db_ok else "Vector DB Offline"
-        
+
         model_display = settings.get('model', 'gemini-2.5-flash').replace('gemini-','Gemini ')
         st.markdown(f"""
         <div style="text-align:center; padding:12px 0 8px; font-size:0.7rem; color:#6e6e80;">
@@ -210,7 +211,7 @@ def _render_session_groups(all_sessions: list, active_session_id: str, chat_stor
 
     # Date Groups (excluding pinned & favorited)
     remaining_sessions = [s for s in active_sessions if s.get("is_pinned", 0) == 0 and s.get("is_favorited", 0) == 0]
-    
+
     now_utc = datetime.datetime.utcnow()
     groups = {
         "Today": [],
@@ -283,7 +284,7 @@ def _render_session_item(session_id: str, title: str, is_active: bool, chat_stor
                 preview = content[:28] + "..."
             else:
                 preview = content
-            
+
             try:
                 dt = datetime.datetime.fromisoformat(last_msg["created_at"])
                 if dt.date() == datetime.date.today():
@@ -295,20 +296,20 @@ def _render_session_item(session_id: str, title: str, is_active: bool, chat_stor
         else:
             preview = "No messages yet"
             time_str = ""
-            
+
         sess_data = chat_store.get_session(session_id)
         is_pinned = sess_data.get("is_pinned", 0) if sess_data else 0
         is_fav = sess_data.get("is_favorited", 0) if sess_data else 0
-        
+
         icons = ""
         if is_pinned:
             icons += "📌 "
         if is_fav:
             icons += "⭐ "
-            
+
         # Standard label representation. theme.css handles newline formatting
         button_label = f"{icons}💬 {title}\n{time_str} · {preview}"
-        
+
         c1, c2 = st.columns([0.83, 0.17])
         with c1:
             btn_style = "primary" if is_active else "secondary"
@@ -323,29 +324,29 @@ def _render_session_item(session_id: str, title: str, is_active: bool, chat_stor
                     if st.button(pin_lbl, key=f"pin_btn_{session_id}", use_container_width=True):
                         chat_store.toggle_session_pin(session_id)
                         st.rerun()
-                        
+
                     # Toggle Favorite
                     fav_lbl = "⭐ Unfavourite" if is_fav else "⭐ Favourite"
                     if st.button(fav_lbl, key=f"fav_btn_{session_id}", use_container_width=True):
                         chat_store.toggle_session_favorite(session_id)
                         st.rerun()
-                        
+
                     # Duplicate session
                     if st.button("📄 Duplicate", key=f"dup_btn_{session_id}", use_container_width=True):
                         new_id = chat_store.duplicate_session(session_id)
                         if new_id:
                             _load_session(new_id, chat_store)
-                            
+
                     # Rename session
                     if st.button("✏️ Rename", key=f"rename_btn_{session_id}", use_container_width=True):
                         st.session_state[rename_key] = True
                         st.rerun()
-                        
+
                     # Archive session
                     if st.button("📦 Archive", key=f"arc_btn_{session_id}", use_container_width=True):
                         chat_store.toggle_session_archive(session_id)
                         st.rerun()
-                        
+
                     # Delete session
                     if st.button("🗑️ Delete", key=f"del_btn_{session_id}", use_container_width=True, type="primary"):
                         _delete_session(session_id, chat_store)
@@ -420,8 +421,8 @@ def _delete_session(session_id: str, chat_store):
 def _start_new_chat():
     """Resets state and creates a fresh new chat session."""
     from chat_manager import ChatMemory
-    from storage import ChatStore
     from config.settings import CHAT_DB_PATH
+    from storage import ChatStore
 
     chat_store = st.session_state.get("chat_store")
     if chat_store is None:

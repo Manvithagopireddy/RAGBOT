@@ -1,8 +1,10 @@
 """
 citations.py — Citation rendering components for RAG and Web search.
 """
+from typing import Any, Dict, List
+
 import streamlit as st
-from typing import List, Dict, Any
+
 
 def render_citations(citations: List[Dict[str, Any]]):
     """Renders citation chips for documents used in retrieval."""

@@ -1,0 +1,1220 @@
+{
+  "timestamp": "2026-11-16T17:33:49Z",
+  "k": 4,
+  "configurations": {
+    "1. FAISS Baseline": {
+      "configuration": "1. FAISS Baseline",
+      "k": 4,
+      "queries_evaluated": 14,
+      "mean_precision_at_k": 0.3571,
+      "mean_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0,
+      "mean_faithfulness": 1.0,
+      "mean_answer_relevance": 0.5631,
+      "mean_retrieval_latency_ms": 15.95,
+      "mean_e2e_latency_ms": 15.95,
+      "query_details": [
+        {
+          "id": "q01",
+          "question": "What is CrewAI and how does it organize multi-agent collaboration?",
+          "expected_sources": [
+            "CrewAI.pdf"
+          ],
+          "retrieved_sources": [
+            "CrewAI.pdf",
+            "CrewAI.pdf",
+            "AI_Agents.pdf",
+            "LangGraph.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.6601,
+          "retrieval_latency_ms": 19.0,
+          "e2e_latency_ms": 19.0
+        },
+        {
+          "id": "q02",
+          "question": "What is the Model Context Protocol (MCP) and how does its client-server architecture work?",
+          "expected_sources": [
+            "MCP.pdf"
+          ],
+          "retrieved_sources": [
+            "MCP.pdf",
+            "CrewAI.pdf",
+            "OpenAI_API.pdf",
+            "LangGraph.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5378,
+          "retrieval_latency_ms": 17.65,
+          "e2e_latency_ms": 17.65
+        },
+        {
+          "id": "q03",
+          "question": "How does LangGraph enable cyclical agent workflows compared to linear DAG chains?",
+          "expected_sources": [
+            "LangGraph.pdf"
+          ],
+          "retrieved_sources": [
+            "LangGraph.pdf",
+            "LangChain.pdf",
+            "LangGraph.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5508,
+          "retrieval_latency_ms": 13.29,
+          "e2e_latency_ms": 13.29
+        },
+        {
+          "id": "q04",
+          "question": "What are the primary differences between supervised, unsupervised, and reinforcement learning?",
+          "expected_sources": [
+            "AI_Basics.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Basics.pdf",
+            "AI_Basics.pdf",
+            "AI_Agents.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4199,
+          "retrieval_latency_ms": 12.74,
+          "e2e_latency_ms": 12.74
+        },
+        {
+          "id": "q05",
+          "question": "What vector indexing algorithms are used in vector databases such as HNSW and IVF?",
+          "expected_sources": [
+            "Vector_Databases.pdf"
+          ],
+          "retrieved_sources": [
+            "Vector_Databases.pdf",
+            "Vector_Databases.pdf",
+            "RAG.pdf",
+            "RAG.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4209,
+          "retrieval_latency_ms": 13.56,
+          "e2e_latency_ms": 13.56
+        },
+        {
+          "id": "q06",
+          "question": "What is the core architecture of Retrieval-Augmented Generation (RAG)?",
+          "expected_sources": [
+            "RAG.pdf"
+          ],
+          "retrieved_sources": [
+            "RAG.pdf",
+            "RAG.pdf",
+            "HuggingFace.pdf",
+            "LLM_Guide.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.725,
+          "retrieval_latency_ms": 13.65,
+          "e2e_latency_ms": 13.65
+        },
+        {
+          "id": "q07",
+          "question": "How does prompt engineering utilize Few-Shot Prompting and Chain-of-Thought (CoT)?",
+          "expected_sources": [
+            "Prompt_Engineering.pdf"
+          ],
+          "retrieved_sources": [
+            "Prompt_Engineering.pdf",
+            "Prompt_Engineering.pdf",
+            "LangGraph.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.7159,
+          "retrieval_latency_ms": 14.25,
+          "e2e_latency_ms": 14.25
+        },
+        {
+          "id": "q08",
+          "question": "What capabilities does the Google Gemini API provide for multimodal input and streaming?",
+          "expected_sources": [
+            "Gemini_API.pdf"
+          ],
+          "retrieved_sources": [
+            "Gemini_API.pdf",
+            "OpenAI_API.pdf",
+            "LLM_Guide.pdf",
+            "LangGraph.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.7462,
+          "retrieval_latency_ms": 12.98,
+          "e2e_latency_ms": 12.98
+        },
+        {
+          "id": "q09",
+          "question": "What is Hugging Face and what core libraries does its ecosystem provide?",
+          "expected_sources": [
+            "HuggingFace.pdf"
+          ],
+          "retrieved_sources": [
+            "HuggingFace.pdf",
+            "OpenAI_API.pdf",
+            "Gemini_API.pdf",
+            "MCP.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.575,
+          "retrieval_latency_ms": 12.98,
+          "e2e_latency_ms": 12.98
+        },
+        {
+          "id": "q10",
+          "question": "How does LangChain Expression Language (LCEL) simplify composing AI pipelines?",
+          "expected_sources": [
+            "LangChain.pdf"
+          ],
+          "retrieved_sources": [
+            "LangChain.pdf",
+            "LangGraph.pdf",
+            "LangGraph.pdf",
+            "HuggingFace.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.6199,
+          "retrieval_latency_ms": 37.16,
+          "e2e_latency_ms": 37.16
+        },
+        {
+          "id": "q11",
+          "question": "What are the key training phases of Large Language Models including pre-training and alignment?",
+          "expected_sources": [
+            "LLM_Guide.pdf"
+          ],
+          "retrieved_sources": [
+            "LLM_Guide.pdf",
+            "HuggingFace.pdf",
+            "LangChain.pdf",
+            "AI_Basics.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4192,
+          "retrieval_latency_ms": 14.84,
+          "e2e_latency_ms": 14.84
+        },
+        {
+          "id": "q12",
+          "question": "How do AI agents perceive environments, plan steps, and utilize external tools?",
+          "expected_sources": [
+            "AI_Agents.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Agents.pdf",
+            "CrewAI.pdf",
+            "AI_Basics.pdf",
+            "AI_Tools.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5381,
+          "retrieval_latency_ms": 13.87,
+          "e2e_latency_ms": 13.87
+        },
+        {
+          "id": "q13",
+          "question": "What features are offered by the OpenAI API for chat completions and embeddings?",
+          "expected_sources": [
+            "OpenAI_API.pdf"
+          ],
+          "retrieved_sources": [
+            "OpenAI_API.pdf",
+            "HuggingFace.pdf",
+            "Gemini_API.pdf",
+            "AI_Tools.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5702,
+          "retrieval_latency_ms": 13.66,
+          "e2e_latency_ms": 13.66
+        },
+        {
+          "id": "q14",
+          "question": "What developer tools and frameworks are currently used for emerging AI application development?",
+          "expected_sources": [
+            "AI_Tools.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Tools.pdf",
+            "OpenAI_API.pdf",
+            "AI_Agents.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3848,
+          "retrieval_latency_ms": 13.72,
+          "e2e_latency_ms": 13.72
+        }
+      ]
+    },
+    "2. Improved Chunking": {
+      "configuration": "2. Improved Chunking",
+      "k": 4,
+      "queries_evaluated": 14,
+      "mean_precision_at_k": 0.6786,
+      "mean_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 0.9643,
+      "mean_faithfulness": 1.0,
+      "mean_answer_relevance": 0.3931,
+      "mean_retrieval_latency_ms": 15.04,
+      "mean_e2e_latency_ms": 15.04,
+      "query_details": [
+        {
+          "id": "q01",
+          "question": "What is CrewAI and how does it organize multi-agent collaboration?",
+          "expected_sources": [
+            "CrewAI.pdf"
+          ],
+          "retrieved_sources": [
+            "CrewAI.pdf",
+            "CrewAI.pdf",
+            "CrewAI.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 1.0,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5719,
+          "retrieval_latency_ms": 12.74,
+          "e2e_latency_ms": 12.74
+        },
+        {
+          "id": "q02",
+          "question": "What is the Model Context Protocol (MCP) and how does its client-server architecture work?",
+          "expected_sources": [
+            "MCP.pdf"
+          ],
+          "retrieved_sources": [
+            "MCP.pdf",
+            "MCP.pdf",
+            "LangGraph.pdf",
+            "LangGraph.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4496,
+          "retrieval_latency_ms": 13.67,
+          "e2e_latency_ms": 13.67
+        },
+        {
+          "id": "q03",
+          "question": "How does LangGraph enable cyclical agent workflows compared to linear DAG chains?",
+          "expected_sources": [
+            "LangGraph.pdf"
+          ],
+          "retrieved_sources": [
+            "LangGraph.pdf",
+            "LangGraph.pdf",
+            "CrewAI.pdf",
+            "OpenAI_API.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3743,
+          "retrieval_latency_ms": 14.85,
+          "e2e_latency_ms": 14.85
+        },
+        {
+          "id": "q04",
+          "question": "What are the primary differences between supervised, unsupervised, and reinforcement learning?",
+          "expected_sources": [
+            "AI_Basics.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Basics.pdf",
+            "AI_Basics.pdf",
+            "AI_Basics.pdf",
+            "AI_Basics.pdf"
+          ],
+          "precision_at_k": 1.0,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3485,
+          "retrieval_latency_ms": 18.02,
+          "e2e_latency_ms": 18.02
+        },
+        {
+          "id": "q05",
+          "question": "What vector indexing algorithms are used in vector databases such as HNSW and IVF?",
+          "expected_sources": [
+            "Vector_Databases.pdf"
+          ],
+          "retrieved_sources": [
+            "RAG.pdf",
+            "Vector_Databases.pdf",
+            "Vector_Databases.pdf",
+            "Vector_Databases.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 0.5,
+          "faithfulness": 1.0,
+          "relevance": 0.1798,
+          "retrieval_latency_ms": 16.12,
+          "e2e_latency_ms": 16.12
+        },
+        {
+          "id": "q06",
+          "question": "What is the core architecture of Retrieval-Augmented Generation (RAG)?",
+          "expected_sources": [
+            "RAG.pdf"
+          ],
+          "retrieved_sources": [
+            "RAG.pdf",
+            "RAG.pdf",
+            "RAG.pdf",
+            "RAG.pdf"
+          ],
+          "precision_at_k": 1.0,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4125,
+          "retrieval_latency_ms": 13.76,
+          "e2e_latency_ms": 13.76
+        },
+        {
+          "id": "q07",
+          "question": "How does prompt engineering utilize Few-Shot Prompting and Chain-of-Thought (CoT)?",
+          "expected_sources": [
+            "Prompt_Engineering.pdf"
+          ],
+          "retrieved_sources": [
+            "Prompt_Engineering.pdf",
+            "Prompt_Engineering.pdf",
+            "Prompt_Engineering.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5909,
+          "retrieval_latency_ms": 17.38,
+          "e2e_latency_ms": 17.38
+        },
+        {
+          "id": "q08",
+          "question": "What capabilities does the Google Gemini API provide for multimodal input and streaming?",
+          "expected_sources": [
+            "Gemini_API.pdf"
+          ],
+          "retrieved_sources": [
+            "Gemini_API.pdf",
+            "Gemini_API.pdf",
+            "Gemini_API.pdf",
+            "LLM_Guide.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4308,
+          "retrieval_latency_ms": 18.49,
+          "e2e_latency_ms": 18.49
+        },
+        {
+          "id": "q09",
+          "question": "What is Hugging Face and what core libraries does its ecosystem provide?",
+          "expected_sources": [
+            "HuggingFace.pdf"
+          ],
+          "retrieved_sources": [
+            "HuggingFace.pdf",
+            "OpenAI_API.pdf",
+            "RAG.pdf",
+            "MCP.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4813,
+          "retrieval_latency_ms": 13.04,
+          "e2e_latency_ms": 13.04
+        },
+        {
+          "id": "q10",
+          "question": "How does LangChain Expression Language (LCEL) simplify composing AI pipelines?",
+          "expected_sources": [
+            "LangChain.pdf"
+          ],
+          "retrieved_sources": [
+            "LangChain.pdf",
+            "LangGraph.pdf",
+            "LangChain.pdf",
+            "LangChain.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3012,
+          "retrieval_latency_ms": 16.07,
+          "e2e_latency_ms": 16.07
+        },
+        {
+          "id": "q11",
+          "question": "What are the key training phases of Large Language Models including pre-training and alignment?",
+          "expected_sources": [
+            "LLM_Guide.pdf"
+          ],
+          "retrieved_sources": [
+            "LLM_Guide.pdf",
+            "LLM_Guide.pdf",
+            "LLM_Guide.pdf",
+            "HuggingFace.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2423,
+          "retrieval_latency_ms": 15.14,
+          "e2e_latency_ms": 15.14
+        },
+        {
+          "id": "q12",
+          "question": "How do AI agents perceive environments, plan steps, and utilize external tools?",
+          "expected_sources": [
+            "AI_Agents.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Agents.pdf",
+            "AI_Agents.pdf",
+            "AI_Basics.pdf",
+            "AI_Basics.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2952,
+          "retrieval_latency_ms": 14.98,
+          "e2e_latency_ms": 14.98
+        },
+        {
+          "id": "q13",
+          "question": "What features are offered by the OpenAI API for chat completions and embeddings?",
+          "expected_sources": [
+            "OpenAI_API.pdf"
+          ],
+          "retrieved_sources": [
+            "OpenAI_API.pdf",
+            "AI_Tools.pdf",
+            "LangChain.pdf",
+            "OpenAI_API.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5702,
+          "retrieval_latency_ms": 13.19,
+          "e2e_latency_ms": 13.19
+        },
+        {
+          "id": "q14",
+          "question": "What developer tools and frameworks are currently used for emerging AI application development?",
+          "expected_sources": [
+            "AI_Tools.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Tools.pdf",
+            "MCP.pdf",
+            "AI_Agents.pdf",
+            "AI_Tools.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2549,
+          "retrieval_latency_ms": 13.06,
+          "e2e_latency_ms": 13.06
+        }
+      ]
+    },
+    "3. Hybrid BM25 + FAISS": {
+      "configuration": "3. Hybrid BM25 + FAISS",
+      "k": 4,
+      "queries_evaluated": 14,
+      "mean_precision_at_k": 0.6071,
+      "mean_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0,
+      "mean_faithfulness": 1.0,
+      "mean_answer_relevance": 0.401,
+      "mean_retrieval_latency_ms": 14.22,
+      "mean_e2e_latency_ms": 14.22,
+      "query_details": [
+        {
+          "id": "q01",
+          "question": "What is CrewAI and how does it organize multi-agent collaboration?",
+          "expected_sources": [
+            "CrewAI.pdf"
+          ],
+          "retrieved_sources": [
+            "CrewAI.pdf",
+            "CrewAI.pdf",
+            "AI_Agents.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5719,
+          "retrieval_latency_ms": 13.33,
+          "e2e_latency_ms": 13.33
+        },
+        {
+          "id": "q02",
+          "question": "What is the Model Context Protocol (MCP) and how does its client-server architecture work?",
+          "expected_sources": [
+            "MCP.pdf"
+          ],
+          "retrieved_sources": [
+            "MCP.pdf",
+            "MCP.pdf",
+            "LangGraph.pdf",
+            "AI_Agents.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4496,
+          "retrieval_latency_ms": 14.22,
+          "e2e_latency_ms": 14.22
+        },
+        {
+          "id": "q03",
+          "question": "How does LangGraph enable cyclical agent workflows compared to linear DAG chains?",
+          "expected_sources": [
+            "LangGraph.pdf"
+          ],
+          "retrieved_sources": [
+            "LangGraph.pdf",
+            "LangGraph.pdf",
+            "LangGraph.pdf",
+            "LangChain.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3743,
+          "retrieval_latency_ms": 14.95,
+          "e2e_latency_ms": 14.95
+        },
+        {
+          "id": "q04",
+          "question": "What are the primary differences between supervised, unsupervised, and reinforcement learning?",
+          "expected_sources": [
+            "AI_Basics.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Basics.pdf",
+            "AI_Basics.pdf",
+            "AI_Basics.pdf",
+            "AI_Basics.pdf"
+          ],
+          "precision_at_k": 1.0,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3485,
+          "retrieval_latency_ms": 13.9,
+          "e2e_latency_ms": 13.9
+        },
+        {
+          "id": "q05",
+          "question": "What vector indexing algorithms are used in vector databases such as HNSW and IVF?",
+          "expected_sources": [
+            "Vector_Databases.pdf"
+          ],
+          "retrieved_sources": [
+            "Vector_Databases.pdf",
+            "Vector_Databases.pdf",
+            "Vector_Databases.pdf",
+            "LangChain.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2905,
+          "retrieval_latency_ms": 14.36,
+          "e2e_latency_ms": 14.36
+        },
+        {
+          "id": "q06",
+          "question": "What is the core architecture of Retrieval-Augmented Generation (RAG)?",
+          "expected_sources": [
+            "RAG.pdf"
+          ],
+          "retrieved_sources": [
+            "RAG.pdf",
+            "RAG.pdf",
+            "RAG.pdf",
+            "LangChain.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4125,
+          "retrieval_latency_ms": 13.46,
+          "e2e_latency_ms": 13.46
+        },
+        {
+          "id": "q07",
+          "question": "How does prompt engineering utilize Few-Shot Prompting and Chain-of-Thought (CoT)?",
+          "expected_sources": [
+            "Prompt_Engineering.pdf"
+          ],
+          "retrieved_sources": [
+            "Prompt_Engineering.pdf",
+            "Prompt_Engineering.pdf",
+            "Prompt_Engineering.pdf",
+            "MCP.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5909,
+          "retrieval_latency_ms": 15.82,
+          "e2e_latency_ms": 15.82
+        },
+        {
+          "id": "q08",
+          "question": "What capabilities does the Google Gemini API provide for multimodal input and streaming?",
+          "expected_sources": [
+            "Gemini_API.pdf"
+          ],
+          "retrieved_sources": [
+            "Gemini_API.pdf",
+            "Gemini_API.pdf",
+            "Gemini_API.pdf",
+            "LLM_Guide.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4308,
+          "retrieval_latency_ms": 13.72,
+          "e2e_latency_ms": 13.72
+        },
+        {
+          "id": "q09",
+          "question": "What is Hugging Face and what core libraries does its ecosystem provide?",
+          "expected_sources": [
+            "HuggingFace.pdf"
+          ],
+          "retrieved_sources": [
+            "HuggingFace.pdf",
+            "OpenAI_API.pdf",
+            "AI_Agents.pdf",
+            "RAG.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4813,
+          "retrieval_latency_ms": 14.36,
+          "e2e_latency_ms": 14.36
+        },
+        {
+          "id": "q10",
+          "question": "How does LangChain Expression Language (LCEL) simplify composing AI pipelines?",
+          "expected_sources": [
+            "LangChain.pdf"
+          ],
+          "retrieved_sources": [
+            "LangChain.pdf",
+            "LangChain.pdf",
+            "LangGraph.pdf",
+            "AI_Basics.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3012,
+          "retrieval_latency_ms": 15.35,
+          "e2e_latency_ms": 15.35
+        },
+        {
+          "id": "q11",
+          "question": "What are the key training phases of Large Language Models including pre-training and alignment?",
+          "expected_sources": [
+            "LLM_Guide.pdf"
+          ],
+          "retrieved_sources": [
+            "LLM_Guide.pdf",
+            "LLM_Guide.pdf",
+            "AI_Basics.pdf",
+            "AI_Tools.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2423,
+          "retrieval_latency_ms": 14.39,
+          "e2e_latency_ms": 14.39
+        },
+        {
+          "id": "q12",
+          "question": "How do AI agents perceive environments, plan steps, and utilize external tools?",
+          "expected_sources": [
+            "AI_Agents.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Agents.pdf",
+            "AI_Agents.pdf",
+            "CrewAI.pdf",
+            "Prompt_Engineering.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2952,
+          "retrieval_latency_ms": 13.48,
+          "e2e_latency_ms": 13.48
+        },
+        {
+          "id": "q13",
+          "question": "What features are offered by the OpenAI API for chat completions and embeddings?",
+          "expected_sources": [
+            "OpenAI_API.pdf"
+          ],
+          "retrieved_sources": [
+            "OpenAI_API.pdf",
+            "AI_Tools.pdf",
+            "LangChain.pdf",
+            "OpenAI_API.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5702,
+          "retrieval_latency_ms": 14.71,
+          "e2e_latency_ms": 14.71
+        },
+        {
+          "id": "q14",
+          "question": "What developer tools and frameworks are currently used for emerging AI application development?",
+          "expected_sources": [
+            "AI_Tools.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Tools.pdf",
+            "LangChain.pdf",
+            "OpenAI_API.pdf",
+            "MCP.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2549,
+          "retrieval_latency_ms": 13.08,
+          "e2e_latency_ms": 13.08
+        }
+      ]
+    },
+    "4. Hybrid + Reranking": {
+      "configuration": "4. Hybrid + Reranking",
+      "k": 4,
+      "queries_evaluated": 14,
+      "mean_precision_at_k": 0.5,
+      "mean_recall_at_k": 1.0,
+      "mean_reciprocal_rank": 1.0,
+      "mean_faithfulness": 1.0,
+      "mean_answer_relevance": 0.3979,
+      "mean_retrieval_latency_ms": 3327.57,
+      "mean_e2e_latency_ms": 3327.57,
+      "query_details": [
+        {
+          "id": "q01",
+          "question": "What is CrewAI and how does it organize multi-agent collaboration?",
+          "expected_sources": [
+            "CrewAI.pdf"
+          ],
+          "retrieved_sources": [
+            "CrewAI.pdf",
+            "AI_Agents.pdf",
+            "CrewAI.pdf",
+            "AI_Agents.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5719,
+          "retrieval_latency_ms": 46412.9,
+          "e2e_latency_ms": 46412.9
+        },
+        {
+          "id": "q02",
+          "question": "What is the Model Context Protocol (MCP) and how does its client-server architecture work?",
+          "expected_sources": [
+            "MCP.pdf"
+          ],
+          "retrieved_sources": [
+            "MCP.pdf",
+            "LangGraph.pdf",
+            "HuggingFace.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4496,
+          "retrieval_latency_ms": 16.11,
+          "e2e_latency_ms": 16.11
+        },
+        {
+          "id": "q03",
+          "question": "How does LangGraph enable cyclical agent workflows compared to linear DAG chains?",
+          "expected_sources": [
+            "LangGraph.pdf"
+          ],
+          "retrieved_sources": [
+            "LangGraph.pdf",
+            "LangGraph.pdf",
+            "CrewAI.pdf",
+            "LangChain.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3743,
+          "retrieval_latency_ms": 12.73,
+          "e2e_latency_ms": 12.73
+        },
+        {
+          "id": "q04",
+          "question": "What are the primary differences between supervised, unsupervised, and reinforcement learning?",
+          "expected_sources": [
+            "AI_Basics.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Basics.pdf",
+            "AI_Basics.pdf",
+            "AI_Basics.pdf",
+            "LangGraph.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3485,
+          "retrieval_latency_ms": 13.37,
+          "e2e_latency_ms": 13.37
+        },
+        {
+          "id": "q05",
+          "question": "What vector indexing algorithms are used in vector databases such as HNSW and IVF?",
+          "expected_sources": [
+            "Vector_Databases.pdf"
+          ],
+          "retrieved_sources": [
+            "Vector_Databases.pdf",
+            "Vector_Databases.pdf",
+            "RAG.pdf",
+            "AI_Basics.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.247,
+          "retrieval_latency_ms": 12.55,
+          "e2e_latency_ms": 12.55
+        },
+        {
+          "id": "q06",
+          "question": "What is the core architecture of Retrieval-Augmented Generation (RAG)?",
+          "expected_sources": [
+            "RAG.pdf"
+          ],
+          "retrieved_sources": [
+            "RAG.pdf",
+            "RAG.pdf",
+            "LLM_Guide.pdf",
+            "RAG.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4125,
+          "retrieval_latency_ms": 12.74,
+          "e2e_latency_ms": 12.74
+        },
+        {
+          "id": "q07",
+          "question": "How does prompt engineering utilize Few-Shot Prompting and Chain-of-Thought (CoT)?",
+          "expected_sources": [
+            "Prompt_Engineering.pdf"
+          ],
+          "retrieved_sources": [
+            "Prompt_Engineering.pdf",
+            "Prompt_Engineering.pdf",
+            "Prompt_Engineering.pdf",
+            "MCP.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5909,
+          "retrieval_latency_ms": 13.1,
+          "e2e_latency_ms": 13.1
+        },
+        {
+          "id": "q08",
+          "question": "What capabilities does the Google Gemini API provide for multimodal input and streaming?",
+          "expected_sources": [
+            "Gemini_API.pdf"
+          ],
+          "retrieved_sources": [
+            "Gemini_API.pdf",
+            "Gemini_API.pdf",
+            "LLM_Guide.pdf",
+            "OpenAI_API.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4308,
+          "retrieval_latency_ms": 13.42,
+          "e2e_latency_ms": 13.42
+        },
+        {
+          "id": "q09",
+          "question": "What is Hugging Face and what core libraries does its ecosystem provide?",
+          "expected_sources": [
+            "HuggingFace.pdf"
+          ],
+          "retrieved_sources": [
+            "HuggingFace.pdf",
+            "OpenAI_API.pdf",
+            "LangChain.pdf",
+            "AI_Tools.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.4813,
+          "retrieval_latency_ms": 12.35,
+          "e2e_latency_ms": 12.35
+        },
+        {
+          "id": "q10",
+          "question": "How does LangChain Expression Language (LCEL) simplify composing AI pipelines?",
+          "expected_sources": [
+            "LangChain.pdf"
+          ],
+          "retrieved_sources": [
+            "LangChain.pdf",
+            "LangChain.pdf",
+            "LangGraph.pdf",
+            "AI_Tools.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.3012,
+          "retrieval_latency_ms": 13.25,
+          "e2e_latency_ms": 13.25
+        },
+        {
+          "id": "q11",
+          "question": "What are the key training phases of Large Language Models including pre-training and alignment?",
+          "expected_sources": [
+            "LLM_Guide.pdf"
+          ],
+          "retrieved_sources": [
+            "LLM_Guide.pdf",
+            "LangChain.pdf",
+            "LLM_Guide.pdf",
+            "AI_Basics.pdf"
+          ],
+          "precision_at_k": 0.5,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2423,
+          "retrieval_latency_ms": 13.17,
+          "e2e_latency_ms": 13.17
+        },
+        {
+          "id": "q12",
+          "question": "How do AI agents perceive environments, plan steps, and utilize external tools?",
+          "expected_sources": [
+            "AI_Agents.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Agents.pdf",
+            "CrewAI.pdf",
+            "CrewAI.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2952,
+          "retrieval_latency_ms": 12.93,
+          "e2e_latency_ms": 12.93
+        },
+        {
+          "id": "q13",
+          "question": "What features are offered by the OpenAI API for chat completions and embeddings?",
+          "expected_sources": [
+            "OpenAI_API.pdf"
+          ],
+          "retrieved_sources": [
+            "OpenAI_API.pdf",
+            "AI_Tools.pdf",
+            "OpenAI_API.pdf",
+            "OpenAI_API.pdf"
+          ],
+          "precision_at_k": 0.75,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.5702,
+          "retrieval_latency_ms": 13.56,
+          "e2e_latency_ms": 13.56
+        },
+        {
+          "id": "q14",
+          "question": "What developer tools and frameworks are currently used for emerging AI application development?",
+          "expected_sources": [
+            "AI_Tools.pdf"
+          ],
+          "retrieved_sources": [
+            "AI_Tools.pdf",
+            "LangChain.pdf",
+            "OpenAI_API.pdf",
+            "CrewAI.pdf"
+          ],
+          "precision_at_k": 0.25,
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "faithfulness": 1.0,
+          "relevance": 0.2549,
+          "retrieval_latency_ms": 13.74,
+          "e2e_latency_ms": 13.74
+        }
+      ]
+    }
+  },
+  "comparison_table": [
+    {
+      "Configuration": "1. FAISS Baseline",
+      "Precision@K": 0.3571,
+      "Recall@K": 1.0,
+      "MRR": 1.0,
+      "Faithfulness": 1.0,
+      "Relevance": 0.5631,
+      "Latency (ms)": 15.95
+    },
+    {
+      "Configuration": "2. Improved Chunking",
+      "Precision@K": 0.6786,
+      "Recall@K": 1.0,
+      "MRR": 0.9643,
+      "Faithfulness": 1.0,
+      "Relevance": 0.3931,
+      "Latency (ms)": 15.04
+    },
+    {
+      "Configuration": "3. Hybrid BM25 + FAISS",
+      "Precision@K": 0.6071,
+      "Recall@K": 1.0,
+      "MRR": 1.0,
+      "Faithfulness": 1.0,
+      "Relevance": 0.401,
+      "Latency (ms)": 14.22
+    },
+    {
+      "Configuration": "4. Hybrid + Reranking",
+      "Precision@K": 0.5,
+      "Recall@K": 1.0,
+      "MRR": 1.0,
+      "Faithfulness": 1.0,
+      "Relevance": 0.3979,
+      "Latency (ms)": 3327.57
+    }
+  ]
+}

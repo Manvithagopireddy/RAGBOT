@@ -30,3 +30,16 @@ Thumbs.db
 chats/
 uploads/
 logs/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+frontend/.vite/
+*.log
+
+# Linters and type checkers
+.ruff_cache/
+.mypy_cache/
+

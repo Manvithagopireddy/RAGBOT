@@ -1,16 +1,17 @@
-import os
 from pathlib import Path
+
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+
 
 def create_pdf(filepath: Path, title: str, content: str):
     """Generates a structured PDF file using ReportLab."""
     filepath.parent.mkdir(parents=True, exist_ok=True)
     doc = SimpleDocTemplate(str(filepath), pagesize=letter, leftMargin=54, rightMargin=54, topMargin=54, bottomMargin=54)
-    
+
     styles = getSampleStyleSheet()
-    
+
     # Custom styles
     title_style = ParagraphStyle(
         'PDFTitleStyle',
@@ -20,7 +21,7 @@ def create_pdf(filepath: Path, title: str, content: str):
         spaceAfter=15,
         textColor='#1E3A8A' # Dark blue
     )
-    
+
     h2_style = ParagraphStyle(
         'PDFH2Style',
         parent=styles['Heading2'],
@@ -30,7 +31,7 @@ def create_pdf(filepath: Path, title: str, content: str):
         spaceAfter=6,
         textColor='#0D9488' # Teal
     )
-    
+
     body_style = ParagraphStyle(
         'PDFBodyStyle',
         parent=styles['Normal'],
@@ -38,11 +39,11 @@ def create_pdf(filepath: Path, title: str, content: str):
         leading=14,
         spaceAfter=8
     )
-    
+
     story = []
     story.append(Paragraph(title, title_style))
     story.append(Spacer(1, 10))
-    
+
     for line in content.strip().split('\n\n'):
         if not line.strip():
             continue
@@ -50,7 +51,7 @@ def create_pdf(filepath: Path, title: str, content: str):
             story.append(Paragraph(line.replace('## ', ''), h2_style))
         else:
             story.append(Paragraph(line.strip(), body_style))
-            
+
     doc.build(story)
 
 # Content dictionary for generating the 14 documents
@@ -234,14 +235,14 @@ DOCUMENTS_CONTENT = {
 def main():
     knowledge_dir = Path("knowledge_base")
     knowledge_dir.mkdir(exist_ok=True)
-    
+
     print(f"Generating mock PDFs in {knowledge_dir.resolve()}...")
-    
+
     for filename, (title, content) in DOCUMENTS_CONTENT.items():
         filepath = knowledge_dir / filename
         print(f"Generating: {filename}...")
         create_pdf(filepath, title, content)
-        
+
     print("All mock PDFs generated successfully!")
 
 if __name__ == "__main__":

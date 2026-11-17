@@ -1,6 +1,8 @@
 import os
+
 from langchain_google_genai import ChatGoogleGenerativeAI
-from config.settings import GEMINI_MODEL_NAME, DEFAULT_TEMPERATURE, DEFAULT_MAX_OUTPUT_TOKENS
+
+from config.settings import DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_TEMPERATURE, GEMINI_MODEL_NAME
 from src.logger import get_logger
 
 logger = get_logger(__name__)

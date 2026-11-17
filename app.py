@@ -1,18 +1,20 @@
 # pyright: ignore [missing-import]
+from pathlib import Path
+
 import streamlit as st
+
 # pyright: ignore [missing-import]
 from dotenv import load_dotenv
-import os
-from pathlib import Path
-from config.settings import VECTOR_STORE_DIR, CHAT_DB_PATH
-from vectorstore import get_or_build_vector_store
+
 from chat_manager import ChatMemory
-from storage import ChatStore
-from components.components import inject_custom_css, inject_all_js
-from components.sidebar import render_sidebar, _start_new_chat
-from components.chat import render_chat_page
 from components.analytics import render_analytics_dashboard
+from components.chat import render_chat_page
+from components.components import inject_all_js, inject_custom_css
+from components.sidebar import render_sidebar
+from config.settings import CHAT_DB_PATH
 from src.logger import get_logger
+from storage import ChatStore
+from vectorstore import get_or_build_bm25_retriever, get_or_build_vector_store
 
 # Load environment variables
 load_dotenv()
@@ -39,10 +41,11 @@ if "chat_store" not in st.session_state:
 
 chat_store: ChatStore = st.session_state.chat_store
 
-# ── INITIALIZE VECTOR DB ───────────────────────────────────────────────────────
+# ── INITIALIZE VECTOR DB & BM25 RETRIEVER ──────────────────────────────────────
 if "db" not in st.session_state:
     with st.spinner("Initializing knowledge base…"):
         st.session_state.db = get_or_build_vector_store()
+        st.session_state.bm25 = get_or_build_bm25_retriever()
 
 # ── INITIALIZE SESSION STATE ───────────────────────────────────────────────────
 if "active_session_id" not in st.session_state:

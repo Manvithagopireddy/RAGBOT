@@ -1,23 +1,24 @@
 import os
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Ensure the root project folder is in the path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from config.settings import KNOWLEDGE_BASE_DIR, FAISS_INDEX_PATH
-from vectorstore import get_or_build_vector_store
-from src.retriever import retrieve_relevant_chunks, format_retrieved_context
-from src.llm import get_llm
 from chat_manager import ChatMemory
+from config.settings import KNOWLEDGE_BASE_DIR
 from rag import execute_rag_pipeline
+from src.retriever import retrieve_relevant_chunks
+from vectorstore import get_or_build_vector_store
+
 
 def test_rag_backend():
     print("=" * 60)
     print("AI TECH ASSISTANT - BACKEND DIAGNOSTIC TEST")
     print("=" * 60)
-    
+
     # 1. Load env
     load_dotenv()
     api_key = os.environ.get("GOOGLE_API_KEY")
@@ -46,25 +47,25 @@ def test_rag_backend():
     print("\n[Step 2] Testing Semantic Search retrieval...")
     test_query = "What is the difference between LangGraph and CrewAI?"
     print(f"Query: '{test_query}'")
-    
+
     results = retrieve_relevant_chunks(db, test_query, k=3)
     if not results:
         print("[ERROR] No matching chunks retrieved from vector database.")
         return
-        
+
     print(f"[OK] Retrieved {len(results)} relevant chunks:")
     for idx, (doc, score) in enumerate(results):
         source = doc.metadata.get("source", "Unknown")
         page = doc.metadata.get("page", 0) + 1
         print(f"   [{idx + 1}] Source: {source} (Page {page}) | Similarity: {score:.4f}")
         print(f"       Text snippet: {doc.page_content.strip()[:140]}...")
-        
+
     # 5. Run LLM Grounding Test
     print("\n[Step 3] Querying Google Gemini 2.5 Flash via RAG...")
     memory = ChatMemory()
-    
+
     token_generator, citations, avg_sim = execute_rag_pipeline(db, memory, test_query)
-    
+
     print("\nResponse stream from LLM:")
     print("-" * 50)
     full_response = ""

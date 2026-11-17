@@ -6,8 +6,10 @@ data from ChatStore.get_analytics(). Integrates with the existing
 BotTech AI glassmorphic dark theme.
 """
 # pyright: ignore [missing-import]
-import streamlit as st
 import datetime
+
+import streamlit as st
+
 from src.logger import get_logger
 
 logger = get_logger(__name__)

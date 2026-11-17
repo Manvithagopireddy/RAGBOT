@@ -2,12 +2,13 @@
 chat_store.py — Persistent multi-session chat history using SQLite.
 Provides full CRUD for sessions, messages, feedback, search, and personas.
 """
+import json
 import sqlite3
 import uuid
-import json
 from datetime import datetime
-from typing import List, Dict, Any, Optional
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from src.logger import get_logger
 
 logger = get_logger(__name__)
@@ -26,15 +27,30 @@ class ChatStore:
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.execute("PRAGMA foreign_keys = ON;")
         conn.row_factory = sqlite3.Row
         return conn
 
     def _init_db(self):
         """Creates tables if they do not exist. Migrates schema if needed."""
         with self._connect() as conn:
+            # Users table
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id         TEXT PRIMARY KEY,
+                    username        TEXT UNIQUE NOT NULL,
+                    email           TEXT UNIQUE NOT NULL,
+                    hashed_password TEXT NOT NULL,
+                    role            TEXT NOT NULL DEFAULT 'user',
+                    created_at      TEXT NOT NULL
+                )
+            """)
+
+            # Sessions table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS sessions (
                     session_id   TEXT PRIMARY KEY,
+                    user_id      TEXT NOT NULL DEFAULT 'default_user',
                     title        TEXT NOT NULL DEFAULT 'New Chat',
                     created_at   TEXT NOT NULL,
                     updated_at   TEXT NOT NULL,
@@ -45,9 +61,13 @@ class ChatStore:
                     persona      TEXT DEFAULT '',
                     web_search   INTEGER NOT NULL DEFAULT 0,
                     is_pinned    INTEGER NOT NULL DEFAULT 0,
-                    is_favorited INTEGER NOT NULL DEFAULT 0
+                    is_favorited INTEGER NOT NULL DEFAULT 0,
+                    is_archived  INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
                 )
             """)
+
+            # Messages table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS messages (
                     message_id      TEXT PRIMARY KEY,
@@ -63,7 +83,33 @@ class ChatStore:
                     FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
                 )
             """)
-            # Safe migration: add columns if they don't exist
+
+            # Documents table
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS documents (
+                    document_id     TEXT PRIMARY KEY,
+                    user_id         TEXT NOT NULL DEFAULT 'default_user',
+                    filename        TEXT NOT NULL,
+                    file_path       TEXT NOT NULL,
+                    file_type       TEXT NOT NULL,
+                    file_size       INTEGER NOT NULL,
+                    chunk_count     INTEGER NOT NULL DEFAULT 0,
+                    checksum        TEXT,
+                    status          TEXT NOT NULL DEFAULT 'indexed',
+                    created_at      TEXT NOT NULL,
+                    updated_at      TEXT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+                )
+            """)
+
+            # Seed default user for backward compatibility
+            conn.execute("""
+                INSERT OR IGNORE INTO users (user_id, username, email, hashed_password, role, created_at)
+                VALUES ('default_user', 'admin', 'admin@ragbot.local', '$2b$12$defaultUserHashPlaceholderForDev2026', 'admin', ?)
+            """, (datetime.utcnow().isoformat(),))
+
+            # Safe migrations: add columns if they don't exist
+            self._safe_add_column(conn, "sessions", "user_id", "TEXT NOT NULL DEFAULT 'default_user'")
             self._safe_add_column(conn, "sessions", "persona", "TEXT DEFAULT ''")
             self._safe_add_column(conn, "sessions", "web_search", "INTEGER NOT NULL DEFAULT 0")
             self._safe_add_column(conn, "sessions", "is_pinned", "INTEGER NOT NULL DEFAULT 0")
@@ -71,6 +117,16 @@ class ChatStore:
             self._safe_add_column(conn, "sessions", "is_archived", "INTEGER NOT NULL DEFAULT 0")
             self._safe_add_column(conn, "messages", "feedback", "TEXT DEFAULT NULL")
             self._safe_add_column(conn, "messages", "pinned", "INTEGER NOT NULL DEFAULT 0")
+
+            # Indexes for relational performance
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_updated_at ON sessions(updated_at DESC)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at ASC)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+
             conn.commit()
         logger.info(f"ChatStore DB initialized at: {self.db_path}")
 
@@ -94,6 +150,7 @@ class ChatStore:
         rag_enabled: bool = True,
         persona: str = "",
         web_search: bool = False,
+        user_id: str = "default_user",
     ) -> str:
         """Creates a new chat session and returns its session_id."""
         session_id = str(uuid.uuid4())
@@ -101,46 +158,67 @@ class ChatStore:
         with self._connect() as conn:
             conn.execute(
                 """INSERT INTO sessions
-                   (session_id, title, created_at, updated_at, model, temperature,
+                   (session_id, user_id, title, created_at, updated_at, model, temperature,
                     retriever_k, rag_enabled, persona, web_search, is_pinned, is_favorited, is_archived)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)""",
-                (session_id, title, now, now, model, temperature,
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)""",
+                (session_id, user_id, title, now, now, model, temperature,
                  retriever_k, int(rag_enabled), persona, int(web_search)),
             )
             conn.commit()
-        logger.info(f"Created session: {session_id}")
+        logger.info(f"Created session: {session_id} (user: {user_id})")
         return session_id
 
-    def get_all_sessions(self) -> List[Dict[str, Any]]:
-        """Returns all sessions ordered by most recently updated."""
+    def get_all_sessions(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Returns all sessions ordered by most recently updated, optionally filtered by user_id."""
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM sessions ORDER BY updated_at DESC"
-            ).fetchall()
+            if user_id:
+                rows = conn.execute(
+                    "SELECT * FROM sessions WHERE user_id = ? ORDER BY updated_at DESC",
+                    (user_id,)
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM sessions ORDER BY updated_at DESC"
+                ).fetchall()
         return [dict(r) for r in rows]
 
-    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
-        """Returns a single session by ID."""
+    def get_session(self, session_id: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Returns a single session by ID, optionally verifying user ownership."""
         with self._connect() as conn:
-            row = conn.execute(
-                "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
-            ).fetchone()
+            if user_id:
+                row = conn.execute(
+                    "SELECT * FROM sessions WHERE session_id = ? AND user_id = ?",
+                    (session_id, user_id)
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
+                ).fetchone()
         return dict(row) if row else None
 
-    def rename_session(self, session_id: str, new_title: str):
-        """Renames a session."""
+    def rename_session(self, session_id: str, new_title: str, user_id: Optional[str] = None):
+        """Renames a session, optionally verifying user ownership."""
         now = datetime.utcnow().isoformat()
         with self._connect() as conn:
-            conn.execute(
-                "UPDATE sessions SET title = ?, updated_at = ? WHERE session_id = ?",
-                (new_title.strip()[:80], now, session_id),
-            )
+            if user_id:
+                conn.execute(
+                    "UPDATE sessions SET title = ?, updated_at = ? WHERE session_id = ? AND user_id = ?",
+                    (new_title.strip()[:80], now, session_id, user_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE sessions SET title = ?, updated_at = ? WHERE session_id = ?",
+                    (new_title.strip()[:80], now, session_id),
+                )
             conn.commit()
 
-    def delete_session(self, session_id: str):
-        """Deletes a session and all its messages (CASCADE)."""
+    def delete_session(self, session_id: str, user_id: Optional[str] = None):
+        """Deletes a session and all its messages (CASCADE), optionally verifying user ownership."""
         with self._connect() as conn:
-            conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+            if user_id:
+                conn.execute("DELETE FROM sessions WHERE session_id = ? AND user_id = ?", (session_id, user_id))
+            else:
+                conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
             conn.commit()
         logger.info(f"Deleted session: {session_id}")
 
@@ -191,18 +269,18 @@ class ChatStore:
             sess = conn.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,)).fetchone()
             if not sess:
                 return None
-            
+
             new_id = str(uuid.uuid4())
             now = datetime.utcnow().isoformat()
             new_title = f"{sess['title']} (Copy)"
-            
+
             conn.execute(
-                """INSERT INTO sessions 
+                """INSERT INTO sessions
                    (session_id, title, created_at, updated_at, model, temperature, retriever_k, rag_enabled, persona, web_search, is_pinned, is_favorited, is_archived)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (new_id, new_title, now, now, sess["model"], sess["temperature"], sess["retriever_k"], sess["rag_enabled"], sess["persona"], sess["web_search"], 0, 0, 0)
             )
-            
+
             messages = conn.execute("SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC", (session_id,)).fetchall()
             for m in messages:
                 conn.execute(
@@ -285,7 +363,7 @@ class ChatStore:
 
         class NumpyEncoder(json.JSONEncoder):
             def default(self, obj):
-                if hasattr(obj, 'item') and callable(getattr(obj, 'item')):
+                if hasattr(obj, 'item') and callable(obj.item):
                     return obj.item()
                 if 'float' in obj.__class__.__name__.lower():
                     return float(obj)
@@ -399,6 +477,22 @@ class ChatStore:
         """Updates the content of an existing message."""
         with self._connect() as conn:
             conn.execute("UPDATE messages SET content = ? WHERE message_id = ?", (new_content, message_id))
+            conn.commit()
+
+    def save_message_source_type(self, message_id: str, source_type: str) -> None:
+        """
+        Persists the routing source type (e.g. 'source:📄 Knowledge Base') into
+        the confidence_desc field of a message.
+
+        This is the proper public API for what chat.py previously did by calling
+        the private _connect() method directly (FIX BUG-006 / BUG-010).
+        """
+        tag = f"source:{source_type}"
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE messages SET confidence_desc = ? WHERE message_id = ?",
+                (tag, message_id),
+            )
             conn.commit()
 
     def get_message_count(self, session_id: str) -> int:
@@ -583,3 +677,158 @@ class ChatStore:
                 groups["Older"].append(session)
 
         return groups
+
+    # ──────────────────────────────────────────────────
+    # User Operations
+    # ──────────────────────────────────────────────────
+
+    def create_user(
+        self,
+        username: str,
+        email: str,
+        hashed_password: str,
+        role: str = "user",
+    ) -> Dict[str, Any]:
+        """Creates a new user record."""
+        user_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                """INSERT INTO users (user_id, username, email, hashed_password, role, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (user_id, username.strip(), email.strip().lower(), hashed_password, role, now)
+            )
+            conn.commit()
+        return {
+            "user_id": user_id,
+            "username": username.strip(),
+            "email": email.strip().lower(),
+            "role": role,
+            "created_at": now
+        }
+
+    def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Finds user by user_id."""
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        return dict(row) if row else None
+
+    def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        """Finds user by username."""
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE LOWER(username) = ?", (username.strip().lower(),)).fetchone()
+        return dict(row) if row else None
+
+    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Finds user by email."""
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE LOWER(email) = ?", (email.strip().lower(),)).fetchone()
+        return dict(row) if row else None
+
+    # ──────────────────────────────────────────────────
+    # Document Operations
+    # ──────────────────────────────────────────────────
+
+    def add_document(
+        self,
+        document_id: str,
+        filename: str,
+        file_path: str,
+        file_type: str,
+        file_size: int,
+        chunk_count: int = 0,
+        checksum: Optional[str] = None,
+        status: str = "indexed",
+        user_id: str = "default_user",
+    ) -> Dict[str, Any]:
+        """Records a new document in the catalog."""
+        now = datetime.utcnow().isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                """INSERT INTO documents
+                   (document_id, user_id, filename, file_path, file_type, file_size, chunk_count, checksum, status, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (document_id, user_id, filename, file_path, file_type, file_size, chunk_count, checksum, status, now, now)
+            )
+            conn.commit()
+        return {
+            "document_id": document_id,
+            "user_id": user_id,
+            "filename": filename,
+            "file_path": file_path,
+            "file_type": file_type,
+            "file_size": file_size,
+            "chunk_count": chunk_count,
+            "checksum": checksum,
+            "status": status,
+            "created_at": now,
+            "updated_at": now
+        }
+
+    def get_documents(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Returns all documents, optionally filtered by user_id."""
+        with self._connect() as conn:
+            if user_id:
+                rows = conn.execute(
+                    "SELECT * FROM documents WHERE user_id = ? ORDER BY created_at DESC",
+                    (user_id,)
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM documents ORDER BY created_at DESC"
+                ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_document(self, document_id: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Returns a single document by ID, optionally verifying user ownership."""
+        with self._connect() as conn:
+            if user_id:
+                row = conn.execute(
+                    "SELECT * FROM documents WHERE document_id = ? AND user_id = ?",
+                    (document_id, user_id)
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT * FROM documents WHERE document_id = ?",
+                    (document_id,)
+                ).fetchone()
+        return dict(row) if row else None
+
+    def delete_document(self, document_id: str, user_id: Optional[str] = None) -> bool:
+        """Deletes a document from the catalog."""
+        with self._connect() as conn:
+            if user_id:
+                cur = conn.execute(
+                    "DELETE FROM documents WHERE document_id = ? AND user_id = ?",
+                    (document_id, user_id)
+                )
+            else:
+                cur = conn.execute(
+                    "DELETE FROM documents WHERE document_id = ?",
+                    (document_id,)
+                )
+            conn.commit()
+            return cur.rowcount > 0
+
+    def update_document_status(
+        self,
+        document_id: str,
+        status: str,
+        chunk_count: Optional[int] = None
+    ) -> bool:
+        """Updates document status and optionally chunk count."""
+        now = datetime.utcnow().isoformat()
+        with self._connect() as conn:
+            if chunk_count is not None:
+                cur = conn.execute(
+                    "UPDATE documents SET status = ?, chunk_count = ?, updated_at = ? WHERE document_id = ?",
+                    (status, chunk_count, now, document_id)
+                )
+            else:
+                cur = conn.execute(
+                    "UPDATE documents SET status = ?, updated_at = ? WHERE document_id = ?",
+                    (status, now, document_id)
+                )
+            conn.commit()
+            return cur.rowcount > 0
+

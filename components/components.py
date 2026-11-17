@@ -3,8 +3,8 @@ components.py — Reusable UI components for BotTech AI.
 ALL JavaScript is injected inside a hidden div so it never renders as visible content.
 """
 # pyright: ignore [missing-import]
+
 import streamlit as st
-from typing import List, Dict, Any
 
 
 def inject_custom_css(css_path: str):
@@ -30,7 +30,7 @@ def inject_custom_css(css_path: str):
     animations = gs.get("animations_enabled", True)
     density = gs.get("chat_density", "Comfortable")
     theme = gs.get("theme", "Dark")
-    
+
     font_sizes = {
         "Small": "13px",
         "Medium": "15px",
@@ -41,7 +41,7 @@ def inject_custom_css(css_path: str):
     gap = "12px" if density == "Comfortable" else "6px"
     duration = "0.3s" if animations else "0s"
     drift_duration = "20s" if animations else "0s"
-    
+
     # Check Light Theme adjustments
     if theme == "Light":
         bg_grad = "linear-gradient(145deg, #f7f9fc 0%, #eef2f7 50%, #e2e8f0 100%)"
@@ -61,7 +61,7 @@ def inject_custom_css(css_path: str):
         sidebar_border = "rgba(255, 255, 255, 0.06)"
         avatar_bg = "#ffffff"
         avatar_border = "rgba(255, 255, 255, 0.08)"
-        
+
     st.markdown(f"""
     <style>
         :root {{
@@ -83,7 +83,7 @@ def inject_custom_css(css_path: str):
         }}
     </style>
     """, unsafe_allow_html=True)
-    
+
     try:
         with open(css_path, "r", encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)

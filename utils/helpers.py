@@ -1,7 +1,7 @@
-import re
 import json
-import os
-from typing import List, Dict, Tuple, Any, Optional
+import re
+from typing import Dict, List, Tuple
+
 from src.logger import get_logger
 
 logger = get_logger(__name__)

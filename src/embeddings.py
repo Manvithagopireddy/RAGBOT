@@ -1,4 +1,5 @@
 from langchain_huggingface import HuggingFaceEmbeddings  # pyright: ignore [missing-import]
+
 from config.settings import EMBEDDING_MODEL_NAME
 from src.logger import get_logger
 
