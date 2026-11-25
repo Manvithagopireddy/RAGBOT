@@ -56,10 +56,10 @@ def send_chat_message(
             confidence_desc=result["confidence_desc"],
             model=result["model"],
         )
-    except Exception as exc:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Chat generation error: {exc}",
+            detail="Chat generation failed.",
         )
 
 
