@@ -12,6 +12,7 @@ from api.dependencies import (
 )
 from api.schemas import DocumentResponse, DocumentUploadResponse
 from services.ingestion_service import IngestionService
+from src.file_handler import MAX_UPLOAD_BYTES
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -26,7 +27,9 @@ async def upload_document(
     Uploads and indexes a document (PDF, DOCX, TXT, CSV, PPTX) into FAISS and BM25.
     """
     try:
-        raw_bytes = await file.read()
+        raw_bytes = await file.read(MAX_UPLOAD_BYTES + 1)
+        if len(raw_bytes) > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="File exceeds upload limit.")
         doc_record = ingestion.ingest_bytes(
             raw_bytes=raw_bytes,
             filename=file.filename or "upload.bin",
@@ -36,15 +39,17 @@ async def upload_document(
             message=f"Document '{doc_record['filename']}' successfully uploaded and indexed.",
             document=DocumentResponse(**doc_record),
         )
+    except HTTPException:
+        raise
     except ValueError as val_err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(val_err),
         )
-    except Exception as exc:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Document ingestion error: {exc}",
+            detail="Document ingestion failed.",
         )
 
 
@@ -94,8 +99,8 @@ def reindex_document(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(fnf))
     except ValueError as val_err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_err))
-    except Exception as exc:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Reindexing failed: {exc}",
+            detail="Reindexing failed.",
         )
