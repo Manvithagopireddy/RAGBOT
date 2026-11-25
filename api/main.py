@@ -72,7 +72,6 @@ async def generic_exception_handler(request: Request, exc: Exception):
         content={
             "success": False,
             "error": "An unexpected server error occurred.",
-            "detail": str(exc),
             "status_code": 500,
         },
     )
