@@ -11,10 +11,9 @@
 ![BM25](https://img.shields.io/badge/Lexical-BM25Okapi-orange.svg)
 ![Reranker](https://img.shields.io/badge/Reranker-Cross--Encoder-purple.svg)
 ![LLM](https://img.shields.io/badge/LLM-Gemini_2.5_Flash-8E75B2.svg?logo=google&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-178_Passed-success.svg)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
-> **RAGBOT** is a production-grade, portfolio-quality Retrieval-Augmented Generation (RAG) platform designed to deliver factual, cited answers to complex technical questions. It combines dense semantic search (FAISS) with sparse lexical search (BM25) via Reciprocal Rank Fusion (RRF), Cross-Encoder reranking, conversation-aware query rephrasing, and real-time Server-Sent Events (SSE) streaming.
+> **RAGBOT** is a portfolio Retrieval-Augmented Generation (RAG) platform designed to generate answers with retrieved citations to complex technical questions. It combines dense semantic search (FAISS) with sparse lexical search (BM25) via Reciprocal Rank Fusion (RRF), Cross-Encoder reranking, conversation-aware query rephrasing, and real-time Server-Sent Events (SSE) streaming.
 
 ---
 
@@ -33,7 +32,7 @@
 - **📊 Interactive Streamlit UI**: Fully maintained, classic analytics and chat dashboard for interactive exploration and prototyping.
 - **🗄️ Relational Persistence Tier**: SQLite schema with enforced Foreign Keys (`PRAGMA foreign_keys = ON`), relational indexes, and WAL journal mode.
 - **📈 Rigorous RAG Evaluation Suite**: Quantitative evaluation harness measuring 7 metrics across 4 retrieval configurations on reproducible benchmarks.
-- **🧪 Comprehensive Testing & CI**: 178 passing Pytest tests, Ruff linter, and MyPy strict type checks in GitHub Actions.
+- **🧪 Comprehensive Testing & CI**: Pytest test suite, Ruff linter, and MyPy strict type checks in GitHub Actions.
 
 ---
 
@@ -251,3 +250,7 @@ mypy api/ services/ src/
 ## 📄 License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+## Reliability and evaluation notes
+
+Retrieved citations do not guarantee factual accuracy. Review the linked CI runs and reproduce the evaluation locally before relying on reported results. Prompt injection defenses and authentication require independent security review before production use.
