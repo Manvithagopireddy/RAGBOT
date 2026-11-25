@@ -62,7 +62,7 @@ def get_current_user_optional(
 ) -> Dict[str, Any]:
     """
     Returns the authenticated user dict if a valid JWT bearer token is present;
-    otherwise falls back to a default guest/local user dict for backward compatibility.
+    otherwise rejects the request.
     """
     if auth and auth.credentials:
         payload = decode_access_token(auth.credentials)
@@ -71,13 +71,7 @@ def get_current_user_optional(
             if user:
                 return user
 
-    # Default fallback user for dev/Streamlit parity
-    return {
-        "user_id": "default_user",
-        "username": "admin",
-        "email": "admin@ragbot.local",
-        "role": "admin",
-    }
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.", headers={"WWW-Authenticate": "Bearer"})
 
 
 def get_current_user(
