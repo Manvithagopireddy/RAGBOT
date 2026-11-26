@@ -12,12 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY requirements.txt constraints-linux-py311.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip pip install --upgrade pip && \
     python -m venv /opt/venv && \
-    /opt/venv/bin/pip install --upgrade pip 'setuptools>=84.1.0' && \
-    /opt/venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu && \
-    /opt/venv/bin/pip install -r requirements.txt && \
+    /opt/venv/bin/pip install --upgrade pip 'setuptools==84.2.1' && \
+    /opt/venv/bin/pip install torch==2.15.0+cpu --index-url https://download.pytorch.org/whl/cpu && \
+    /opt/venv/bin/pip install -c constraints-linux-py311.txt -r requirements.txt && \
     /opt/venv/bin/python -c 'import torch; assert torch.version.cuda is None'
 
 # ── STAGE 2: Production Runner ────────────────────────────────────────────────
