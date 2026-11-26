@@ -62,7 +62,7 @@ class RAGService:
         """
         Executes non-streaming end-to-end RAG and returns complete result.
         """
-        # Ensure session exists
+        # Ensure session exists and belongs to user
         if not session_id:
             session_id = self.store.create_session(
                 title=question[:40].strip() or "New Chat",
@@ -73,6 +73,10 @@ class RAGService:
                 web_search=web_search,
                 user_id=user_id,
             )
+        else:
+            existing_session = self.store.get_session(session_id, user_id=user_id)
+            if not existing_session:
+                raise PermissionError(f"Session '{session_id}' not found or unauthorized.")
 
         # Build memory from prior turns (excluding current question)
         memory = self._prepare_memory(session_id)
@@ -159,7 +163,7 @@ class RAGService:
           event: citations\ndata: {...}\n\n
           event: done\ndata: {...}\n\n
         """
-        # Ensure session exists
+        # Ensure session exists and belongs to user
         if not session_id:
             session_id = self.store.create_session(
                 title=question[:40].strip() or "New Chat",
@@ -170,6 +174,10 @@ class RAGService:
                 web_search=web_search,
                 user_id=user_id,
             )
+        else:
+            existing_session = self.store.get_session(session_id, user_id=user_id)
+            if not existing_session:
+                raise PermissionError(f"Session '{session_id}' not found or unauthorized.")
 
         # Record user question in DB
         user_msg_id = self.store.add_message(

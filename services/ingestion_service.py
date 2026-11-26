@@ -25,7 +25,7 @@ from services.retrieval_service import retrieval_service
 from src.bm25_retriever import BM25Retriever, build_bm25_index
 from src.document_loader import load_file
 from src.embeddings import get_embeddings
-from src.file_handler import MAX_UPLOAD_BYTES, SUPPORTED_EXTENSIONS, _safe_filename
+from src.file_handler import MAX_UPLOAD_BYTES, SUPPORTED_EXTENSIONS, _safe_filename, verify_magic_bytes
 from src.logger import get_logger
 from src.text_splitter import split_documents
 from storage import ChatStore
@@ -71,7 +71,12 @@ class IngestionService:
                 f"File is too large ({mb:.1f} MB). Maximum allowed size is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB."
             )
 
-        # 2. Compute Checksum
+        # 2. Magic byte content verification
+        valid_magic, magic_err = verify_magic_bytes(raw_bytes, ext)
+        if not valid_magic:
+            raise ValueError(f"File content validation failed: {magic_err}")
+
+        # 3. Compute Checksum
         checksum = hashlib.sha256(raw_bytes).hexdigest()
 
         # Check if identical checksum already exists for this user

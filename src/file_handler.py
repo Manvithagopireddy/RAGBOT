@@ -34,6 +34,43 @@ _EXT_ICONS: dict[str, str] = {
 
 # ── Validation helpers ─────────────────────────────────────────────────────────
 
+def verify_magic_bytes(data: bytes, ext: str) -> Tuple[bool, str]:
+    """
+    Verifies that file header bytes match the expected signature for the extension.
+    Prevents executable or malicious binary masquerading.
+    """
+    if len(data) < 4:
+        return False, "File is too small to determine content type."
+
+    # Check for known dangerous executable headers regardless of declared extension
+    dangerous_signatures = [
+        (b"MZ", "Windows executable/DLL (PE)"),
+        (b"\x7fELF", "Linux executable (ELF)"),
+        (b"\xca\xfe\xba\xbe", "Compiled binary (Mach-O / Java Class)"),
+        (b"\xfe\xed\xfa\xce", "Mach-O 32-bit binary"),
+        (b"\xfe\xed\xfa\xcf", "Mach-O 64-bit binary"),
+    ]
+    for sig, desc in dangerous_signatures:
+        if data.startswith(sig):
+            return False, f"Dangerous binary signature detected: {desc}. Upload rejected."
+
+    ext = ext.lower()
+    if ext == ".pdf":
+        if not data.startswith(b"%PDF"):
+            return False, "Invalid PDF header: signature does not match '%PDF'."
+    elif ext in (".docx", ".pptx"):
+        # Office Open XML files are zip containers starting with PK\x03\x04
+        if not data.startswith(b"PK\x03\x04"):
+            return False, f"Invalid Office document header: expected Zip-based container for {ext}."
+    elif ext in (".txt", ".csv"):
+        # Text/CSV files must not contain binary NUL bytes
+        sample = data[:1024]
+        if b"\x00" in sample:
+            return False, f"Binary null byte detected in text document ({ext}). Upload rejected."
+
+    return True, ""
+
+
 def _safe_filename(raw_name: str) -> str:
     """
     Strip directory components and remove characters that could be dangerous
@@ -83,6 +120,11 @@ def validate_upload(
             f"File is too large ({mb:.1f} MB). "
             f"Maximum allowed size is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB."
         )
+
+    # 3. Magic byte signature verification
+    valid_sig, sig_err = verify_magic_bytes(data, ext)
+    if not valid_sig:
+        return False, sig_err
 
     return True, ""
 

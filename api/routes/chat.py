@@ -57,6 +57,11 @@ def send_chat_message(
             confidence_desc=result["confidence_desc"],
             model=result["model"],
         )
+    except PermissionError as perm_err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(perm_err),
+        ) from perm_err
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

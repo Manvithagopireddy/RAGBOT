@@ -35,6 +35,35 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class RequestBodyLimitMiddleware(BaseHTTPMiddleware):
+    """
+    Enforces maximum request body sizes to prevent denial of service:
+    - 25 MB for document upload routes
+    - 2 MB for standard JSON payload endpoints
+    """
+    MAX_UPLOAD_BYTES = 25 * 1024 * 1024   # 25 MB
+    MAX_DEFAULT_BYTES = 2 * 1024 * 1024   # 2 MB
+
+    async def dispatch(self, request: Request, call_next):
+        content_length = request.headers.get("content-length")
+        if content_length:
+            try:
+                length = int(content_length)
+                limit = self.MAX_UPLOAD_BYTES if request.url.path.endswith("/documents/upload") else self.MAX_DEFAULT_BYTES
+                if length > limit:
+                    return JSONResponse(
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                        content={
+                            "success": False,
+                            "error": f"Request payload exceeds allowed limit of {limit // (1024 * 1024)}MB.",
+                            "status_code": 413,
+                        },
+                    )
+            except ValueError:
+                pass
+        return await call_next(request)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for application startup and shutdown events."""
@@ -52,8 +81,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── Security Headers ──────────────────────────────────────────────────────────
+# ── Security & Limit Middlewares ──────────────────────────────────────────────
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestBodyLimitMiddleware)
 
 # ── CORS Middleware (restricted to configured origins) ────────────────────────
 app.add_middleware(
