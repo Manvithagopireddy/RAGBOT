@@ -40,6 +40,7 @@ jobs:
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
           pip install ruff mypy bandit pip-audit
 
@@ -57,7 +58,7 @@ jobs:
 
       - name: Run Pip-Audit Dependency Security Scan
         run: |
-          pip-audit -r requirements.txt
+          pip-audit
 
       - name: Run Automated Test Suite with Coverage
         run: |
@@ -72,7 +73,7 @@ jobs:
           retention-days: 7
 
   frontend-build:
-    name: Frontend Lint & Production Build
+    name: Frontend Type Check & Production Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
