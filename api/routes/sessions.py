@@ -44,7 +44,7 @@ def create_session(
     session_id = store.create_session(
         title=payload.title or "New Chat",
         model=payload.model or "gemini-2.5-flash",
-        temperature=payload.temperature or 0.7,
+        temperature=payload.temperature if payload.temperature is not None else 0.7,
         retriever_k=payload.retriever_k or 4,
         persona=payload.persona or "",
         web_search=bool(payload.web_search),
