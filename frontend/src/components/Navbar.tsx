@@ -24,7 +24,7 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <header className="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 px-4 flex items-center justify-between">
+    <header className="h-14 gap-1 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 px-2 sm:px-4 flex items-center justify-between">
       {/* Brand */}
       <div className="flex items-center gap-3">
         <Link to="/" className="flex items-center gap-2 group">
@@ -34,7 +34,7 @@ export const Navbar: React.FC = () => {
           <div>
             <div className="font-semibold text-sm tracking-tight flex items-center gap-1.5 text-slate-100">
               RAGBOT
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-950 text-teal-400 border border-teal-800/40">
+              <span className="hidden xl:inline text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-950 text-teal-400 border border-teal-800/40">
                 v2.0 Enterprise
               </span>
             </div>
@@ -42,7 +42,7 @@ export const Navbar: React.FC = () => {
         </Link>
 
         {/* Global health dot */}
-        <div className="hidden sm:flex items-center gap-1.5 ml-3 pl-3 border-l border-slate-800 text-xs text-slate-400">
+        <div className="hidden xl:flex items-center gap-1.5 ml-3 pl-3 border-l border-slate-800 text-xs text-slate-400">
           <span className={`w-2 h-2 rounded-full ${health ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
           <span className="text-[11px] font-mono">{health ? 'Hybrid RAG Online' : 'Connecting...'}</span>
         </div>
@@ -57,14 +57,16 @@ export const Navbar: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
+              aria-label={item.name}
+              title={item.name}
+              className={`px-2 lg:px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors ${
                 isActive
                   ? 'bg-slate-800 text-teal-400 border border-slate-700/80 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
-              <span>{item.name}</span>
+              <span className="hidden lg:inline">{item.name}</span>
             </Link>
           );
         })}
