@@ -14,8 +14,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip pip install --upgrade pip && \
-    pip install --prefix=/install torch --index-url https://download.pytorch.org/whl/cpu && \
-    PYTHONPATH=/install/lib/python3.11/site-packages pip install --prefix=/install -r requirements.txt
+    python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip 'setuptools>=84.1.0' && \
+    /opt/venv/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu && \
+    /opt/venv/bin/pip install -r requirements.txt && \
+    /opt/venv/bin/python -c 'import torch; assert torch.version.cuda is None'
 
 # ── STAGE 2: Production Runner ────────────────────────────────────────────────
 FROM python:3.11-slim AS runner
@@ -32,7 +35,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
-COPY --from=builder /install /usr/local
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Security: Create non-root system user and group
 RUN groupadd -r appgroup && useradd -r -g appgroup -d /app -s /sbin/nologin appuser

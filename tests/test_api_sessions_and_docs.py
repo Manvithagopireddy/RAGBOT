@@ -158,3 +158,14 @@ class TestDocumentEndpoints:
         with TestClient(app) as client:
             assert client.get("/api/v1/documents").status_code == 401
             assert client.post("/api/v1/documents/upload").status_code == 401
+
+
+def test_zero_temperature_is_preserved(client_and_store):
+    client, _ = client_and_store
+    response = client.post("/api/v1/sessions", json={"title": "Deterministic", "temperature": 0.0})
+    assert response.status_code == 201
+    assert response.json()["temperature"] == 0.0
+    session_id = response.json()["session_id"]
+    updated = client.patch(f"/api/v1/sessions/{session_id}", json={"temperature": 0.0})
+    assert updated.status_code == 200
+    assert updated.json()["temperature"] == 0.0

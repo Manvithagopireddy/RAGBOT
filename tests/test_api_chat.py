@@ -142,3 +142,17 @@ class TestChatEndpoints:
 
             res_diag = unauth_client.post("/api/v1/diagnostics/retrieve", json={"query": "hello"})
             assert res_diag.status_code == 401
+
+
+def test_followup_retrieval_is_scoped(chat_client, monkeypatch):
+    client, rag, _ = chat_client
+    retrieval = MagicMock()
+    retrieval.retrieve.return_value = ([], {})
+    monkeypatch.setattr("services.rag_service.retrieval_service", retrieval)
+    monkeypatch.setattr("services.rag_service._condense_query", lambda *args, **kwargs: "standalone query")
+    monkeypatch.setattr("services.rag_service.execute_rag_pipeline", lambda **kwargs: (iter(["answer"]), [], 0.0))
+    response = client.post("/api/v1/chat", json={"message": "Explain that"})
+    assert response.status_code == 200
+    kwargs = retrieval.retrieve.call_args.kwargs
+    assert kwargs["query"] == "standalone query"
+    assert kwargs["user_id"] == rag.store.get_session(response.json()["session_id"])["user_id"]

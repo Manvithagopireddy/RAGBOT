@@ -39,7 +39,7 @@ jobs:
 
       - name: Install backend dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip 'setuptools>=84.1.0'
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
           pip install ruff mypy bandit pip-audit
@@ -59,8 +59,12 @@ jobs:
       - name: Run Pip-Audit Dependency Security Scan
         run: |
           pip-audit
+          python -c 'import torch; assert torch.version.cuda is None; print(torch.__version__.split("+")[0])' > torch-version.txt
+          printf 'torch==%s\n' "$(cat torch-version.txt)" > torch-audit.txt
+          pip-audit --no-deps --disable-pip -r torch-audit.txt
 
       - name: Run Automated Test Suite with Coverage
+        if: success() || failure()
         run: |
           pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=xml
 
@@ -70,6 +74,7 @@ jobs:
         with:
           name: coverage-report
           path: coverage.xml
+          if-no-files-found: error
           retention-days: 7
 
   frontend-build:
@@ -116,6 +121,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
+          load: true
           tags: ragbot-backend:latest
           cache-from: type=gha,scope=ragbot-backend
           cache-to: type=gha,mode=max,scope=ragbot-backend
@@ -126,6 +132,29 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: false
+          load: true
           tags: ragbot-frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=ragbot-frontend
+          cache-to: type=gha,mode=max,scope=ragbot-frontend
+
+      - name: Run container integration smoke checks
+        run: |
+          docker network create ragbot-ci
+          docker run -d --name backend --network ragbot-ci \
+            -e GOOGLE_API_KEY=mock-ci-token-not-used-for-real-calls \
+            -e JWT_SECRET_KEY=ci-secret-key-for-testing-only-at-least-32chars \
+            ragbot-backend:latest
+          docker run -d --name frontend --network ragbot-ci -p 127.0.0.1:18080:80 ragbot-frontend:latest
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:18080/api/v1/health; then break; fi
+            sleep 2
+          done
+          python3 scripts/container_smoke.py
+
+      - name: Container diagnostics and cleanup
+        if: always()
+        run: |
+          docker logs backend || true
+          docker logs frontend || true
+          docker rm -f frontend backend || true
+          docker network rm ragbot-ci || true
