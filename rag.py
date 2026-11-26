@@ -348,7 +348,7 @@ def execute_rag_pipeline(
 
     # Step 2: Query Rewriting
     standalone_query = question
-    if (db is not None or bm25 is not None) and not image_bytes:
+    if pre_retrieved is None and (db is not None or bm25 is not None) and not image_bytes:
         standalone_query = _condense_query(question, chat_history_str, model=model)
 
     # Step 3: Hybrid Retrieval & Reranking
