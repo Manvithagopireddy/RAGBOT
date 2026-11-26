@@ -158,6 +158,29 @@ def inject_all_js():
                 if (inp) inp.focus();
             }
         });
+
+        /* ── CLIPBOARD COPY DELEGATE ── */
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.bottech-copy-btn');
+            if (!btn) return;
+            var text = btn.getAttribute('data-clipboard-text') || '';
+            if (text) {
+                try {
+                    text = decodeURIComponent(escape(atob(text)));
+                } catch(err) {
+                    // fallback to raw text if not base64
+                }
+                navigator.clipboard.writeText(text).then(function() {
+                    var origHtml = btn.innerHTML;
+                    btn.innerHTML = '<span style="color:#10b981;">✓ Copied</span>';
+                    setTimeout(function() {
+                        btn.innerHTML = origHtml;
+                    }, 2000);
+                }).catch(function(err) {
+                    console.error('Clipboard copy failed:', err);
+                });
+            }
+        });
     })();
     </script>
     </div>

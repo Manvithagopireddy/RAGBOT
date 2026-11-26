@@ -126,23 +126,21 @@ class TestValidateUpload:
         assert ok is False
 
     def test_accepts_file_at_exact_limit(self):
-        """Boundary: exactly MAX_UPLOAD_BYTES is accepted."""
-        data = b"a" * MAX_UPLOAD_BYTES
+        """Boundary: exactly MAX_UPLOAD_BYTES with valid PDF header is accepted."""
+        data = b"%PDF-1.4 " + b"a" * (MAX_UPLOAD_BYTES - 9)
         f = _make_upload("boundary.pdf", data)
         ok, _ = validate_upload(f)
         assert ok is True
 
     def test_rejects_disguised_exe_as_pdf(self):
         """
-        Extension check: an executable renamed to .pdf passes the extension
-        check (we only validate by extension, not by magic bytes, which is the
-        documented scope). This test asserts the current behaviour so we don't
-        accidentally change it without noticing.
+        Security check: an executable renamed to .pdf must be rejected
+        by magic byte content inspection (Phase 4).
         """
         f = _make_upload("not_a_pdf.pdf", b"MZ\x90\x00" * 20)
-        ok, _ = validate_upload(f)
-        # Extension is .pdf — passes the extension check
-        assert ok is True
+        ok, reason = validate_upload(f)
+        assert ok is False
+        assert "Dangerous binary signature" in reason
 
     def test_getvalue_raises_returns_error(self):
         """If getvalue() raises, validate_upload returns a failure."""

@@ -62,7 +62,7 @@ class RAGService:
         """
         Executes non-streaming end-to-end RAG and returns complete result.
         """
-        # Ensure session exists
+        # Ensure session exists and belongs to user
         if not session_id:
             session_id = self.store.create_session(
                 title=question[:40].strip() or "New Chat",
@@ -73,14 +73,26 @@ class RAGService:
                 web_search=web_search,
                 user_id=user_id,
             )
+        else:
+            existing_session = self.store.get_session(session_id, user_id=user_id)
+            if not existing_session:
+                raise PermissionError(f"Session '{session_id}' not found or unauthorized.")
 
         # Build memory from prior turns (excluding current question)
         memory = self._prepare_memory(session_id)
 
-        # Run pipeline
+        # Run pipeline with isolated retrieval scoped to user_id
         db = retrieval_service.faiss_store
         bm25 = retrieval_service.bm25_retriever
         web_citations: List[Dict[str, Any]] = []
+
+        retrieved_results, _ = retrieval_service.retrieve(
+            query=question,
+            k=retriever_k,
+            hybrid=hybrid,
+            rerank=rerank,
+            user_id=user_id,
+        )
 
         token_gen, citations, avg_sim = execute_rag_pipeline(
             db=db,
@@ -92,6 +104,7 @@ class RAGService:
             persona=persona,
             web_search=web_search,
             web_citations=web_citations,
+            pre_retrieved=retrieved_results,
             bm25=bm25,
             hybrid=hybrid,
             rerank=rerank,
@@ -150,7 +163,7 @@ class RAGService:
           event: citations\ndata: {...}\n\n
           event: done\ndata: {...}\n\n
         """
-        # Ensure session exists
+        # Ensure session exists and belongs to user
         if not session_id:
             session_id = self.store.create_session(
                 title=question[:40].strip() or "New Chat",
@@ -161,6 +174,10 @@ class RAGService:
                 web_search=web_search,
                 user_id=user_id,
             )
+        else:
+            existing_session = self.store.get_session(session_id, user_id=user_id)
+            if not existing_session:
+                raise PermissionError(f"Session '{session_id}' not found or unauthorized.")
 
         # Record user question in DB
         user_msg_id = self.store.add_message(
@@ -182,6 +199,14 @@ class RAGService:
         bm25 = retrieval_service.bm25_retriever
         web_citations: List[Dict[str, Any]] = []
 
+        retrieved_results, _ = retrieval_service.retrieve(
+            query=question,
+            k=retriever_k,
+            hybrid=hybrid,
+            rerank=rerank,
+            user_id=user_id,
+        )
+
         token_gen, citations, avg_sim = execute_rag_pipeline(
             db=db,
             memory=memory,
@@ -192,6 +217,7 @@ class RAGService:
             persona=persona,
             web_search=web_search,
             web_citations=web_citations,
+            pre_retrieved=retrieved_results,
             bm25=bm25,
             hybrid=hybrid,
             rerank=rerank,

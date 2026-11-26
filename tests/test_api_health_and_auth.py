@@ -30,6 +30,11 @@ class TestHealthAndRoot:
         data = response.json()
         assert data["name"] == "RAGBOT API"
         assert data["status"] == "online"
+        # Observability and security headers (Phases 1 & 14)
+        assert "x-request-id" in response.headers
+        assert "x-process-time" in response.headers
+        assert response.headers.get("x-content-type-options") == "nosniff"
+        assert response.headers.get("x-frame-options") == "DENY"
 
     def test_health_endpoint(self, client):
         response = client.get("/api/v1/health")
@@ -38,6 +43,8 @@ class TestHealthAndRoot:
         assert data["status"] == "ok"
         assert data["version"] == "2.0.0"
         assert "faiss_ready" in data
+        assert "x-request-id" in response.headers
+        assert "x-process-time" in response.headers
 
 
 class TestAuthEndpoints:

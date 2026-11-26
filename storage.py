@@ -50,7 +50,7 @@ class ChatStore:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS sessions (
                     session_id   TEXT PRIMARY KEY,
-                    user_id      TEXT NOT NULL DEFAULT 'default_user',
+                    user_id      TEXT,
                     title        TEXT NOT NULL DEFAULT 'New Chat',
                     created_at   TEXT NOT NULL,
                     updated_at   TEXT NOT NULL,
@@ -88,7 +88,7 @@ class ChatStore:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS documents (
                     document_id     TEXT PRIMARY KEY,
-                    user_id         TEXT NOT NULL DEFAULT 'default_user',
+                    user_id         TEXT,
                     filename        TEXT NOT NULL,
                     file_path       TEXT NOT NULL,
                     file_type       TEXT NOT NULL,
@@ -101,15 +101,8 @@ class ChatStore:
                     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
                 )
             """)
-
-            # Seed default user for backward compatibility
-            conn.execute("""
-                INSERT OR IGNORE INTO users (user_id, username, email, hashed_password, role, created_at)
-                VALUES ('default_user', 'admin', 'admin@ragbot.local', '$2b$12$defaultUserHashPlaceholderForDev2026', 'admin', ?)
-            """, (datetime.utcnow().isoformat(),))
-
             # Safe migrations: add columns if they don't exist
-            self._safe_add_column(conn, "sessions", "user_id", "TEXT NOT NULL DEFAULT 'default_user'")
+            self._safe_add_column(conn, "sessions", "user_id", "TEXT")
             self._safe_add_column(conn, "sessions", "persona", "TEXT DEFAULT ''")
             self._safe_add_column(conn, "sessions", "web_search", "INTEGER NOT NULL DEFAULT 0")
             self._safe_add_column(conn, "sessions", "is_pinned", "INTEGER NOT NULL DEFAULT 0")
@@ -150,7 +143,7 @@ class ChatStore:
         rag_enabled: bool = True,
         persona: str = "",
         web_search: bool = False,
-        user_id: str = "default_user",
+        user_id: Optional[str] = None,
     ) -> str:
         """Creates a new chat session and returns its session_id."""
         session_id = str(uuid.uuid4())
@@ -739,7 +732,7 @@ class ChatStore:
         chunk_count: int = 0,
         checksum: Optional[str] = None,
         status: str = "indexed",
-        user_id: str = "default_user",
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Records a new document in the catalog."""
         now = datetime.utcnow().isoformat()

@@ -1,11 +1,13 @@
 """
 sessions.py — Chat Session and History Management Routes.
+All endpoints require valid JWT authentication.
+Enforces strict per-user isolation: users can only view, update, or delete their own sessions.
 """
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.dependencies import get_chat_store, get_current_user_optional
+from api.dependencies import get_chat_store, get_current_user
 from api.schemas import (
     MessageItem,
     SessionCreateRequest,
@@ -21,10 +23,10 @@ router = APIRouter(prefix="/sessions", tags=["Sessions"])
 @router.get("", response_model=List[SessionResponse])
 def list_sessions(
     store: ChatStore = Depends(get_chat_store),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
-    Returns all chat sessions belonging to the current user.
+    Returns all chat sessions belonging to the authenticated user.
     """
     sessions = store.get_all_sessions(user_id=current_user["user_id"])
     return [SessionResponse(**s) for s in sessions]
@@ -34,10 +36,10 @@ def list_sessions(
 def create_session(
     payload: SessionCreateRequest,
     store: ChatStore = Depends(get_chat_store),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
-    Creates a new conversational session.
+    Creates a new conversational session for the authenticated user.
     """
     session_id = store.create_session(
         title=payload.title or "New Chat",
@@ -48,7 +50,7 @@ def create_session(
         web_search=bool(payload.web_search),
         user_id=current_user["user_id"],
     )
-    sess = store.get_session(session_id)
+    sess = store.get_session(session_id, user_id=current_user["user_id"])
     if not sess:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -61,23 +63,17 @@ def create_session(
 def get_session_details(
     session_id: str,
     store: ChatStore = Depends(get_chat_store),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Retrieves session settings and chronological message history.
+    Validates ownership: returns 404 if session does not exist or belongs to another user.
     """
-    sess = store.get_session(session_id)
+    sess = store.get_session(session_id, user_id=current_user["user_id"])
     if not sess:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session '{session_id}' not found.",
-        )
-
-    # Check user ownership if not default_user
-    if current_user["user_id"] != "default_user" and sess.get("user_id") != current_user["user_id"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view this session.",
         )
 
     raw_messages = store.get_messages(session_id)
@@ -94,26 +90,21 @@ def update_session(
     session_id: str,
     payload: SessionUpdateRequest,
     store: ChatStore = Depends(get_chat_store),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Updates session title or generation parameters.
+    Validates ownership: returns 404 if session does not belong to the caller.
     """
-    sess = store.get_session(session_id)
+    sess = store.get_session(session_id, user_id=current_user["user_id"])
     if not sess:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session '{session_id}' not found.",
         )
 
-    if current_user["user_id"] != "default_user" and sess.get("user_id") != current_user["user_id"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to modify this session.",
-        )
-
     if payload.title is not None:
-        store.rename_session(session_id, payload.title)
+        store.rename_session(session_id, payload.title, user_id=current_user["user_id"])
 
     # Update settings if provided
     current_temp = payload.temperature if payload.temperature is not None else sess["temperature"]
@@ -133,7 +124,7 @@ def update_session(
         web_search=current_web,
     )
 
-    updated_sess = store.get_session(session_id)
+    updated_sess = store.get_session(session_id, user_id=current_user["user_id"])
     if not updated_sess:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -146,23 +137,18 @@ def update_session(
 def delete_session(
     session_id: str,
     store: ChatStore = Depends(get_chat_store),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Deletes a session and its associated messages.
+    Validates ownership: returns 404 if session does not belong to the caller.
     """
-    sess = store.get_session(session_id)
+    sess = store.get_session(session_id, user_id=current_user["user_id"])
     if not sess:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Session '{session_id}' not found.",
         )
 
-    if current_user["user_id"] != "default_user" and sess.get("user_id") != current_user["user_id"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to delete this session.",
-        )
-
-    store.delete_session(session_id)
+    store.delete_session(session_id, user_id=current_user["user_id"])
     return {"message": f"Session '{session_id}' deleted successfully."}

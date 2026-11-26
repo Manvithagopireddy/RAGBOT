@@ -20,10 +20,27 @@ from src.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Security settings
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "ragbot-insecure-dev-secret-change-in-production-2026")
-JWT_ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
+# Security settings — fail securely if secret is missing or weak in production
+_raw_secret = os.environ.get("JWT_SECRET_KEY", "")
+if not _raw_secret:
+    _env = os.environ.get("APP_ENV", "development").lower()
+    if _env in ("production", "prod", "staging"):
+        raise RuntimeError(
+            "JWT_SECRET_KEY must be set in environment variables for production. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+    # Development-only insecure fallback — not usable in production
+    _raw_secret = "ragbot-dev-only-insecure-secret-do-not-use-in-prod"
+    logger.warning("JWT_SECRET_KEY not set — using insecure development default. Set JWT_SECRET_KEY before deploying.")
+elif len(_raw_secret) < 32:
+    logger.warning("JWT_SECRET_KEY is shorter than 32 characters — this is weak. Use at least 32 random bytes.")
+
+JWT_SECRET_KEY: str = _raw_secret
+# Only allow HS256/HS512 — reject algorithm confusion attacks (e.g. 'none', RS256 without key)
+JWT_ALGORITHM: str = os.environ.get("JWT_ALGORITHM", "HS256")
+if JWT_ALGORITHM not in ("HS256", "HS384", "HS512"):
+    raise RuntimeError(f"JWT_ALGORITHM '{JWT_ALGORITHM}' is not allowed. Use HS256, HS384, or HS512.")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))  # 1 hour (was 24)
 
 
 # ── Password Hashing ──────────────────────────────────────────────────────────
@@ -69,9 +86,18 @@ def create_access_token(
 
 
 def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
-    """Decodes and validates a JWT access token. Returns payload or None."""
+    """Decodes and validates a JWT access token. Returns payload or None on any error."""
     try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(
+            token,
+            JWT_SECRET_KEY,
+            algorithms=[JWT_ALGORITHM],  # Explicit allowlist — prevents 'alg:none' attacks
+            options={"require": ["exp", "iat", "sub"]},
+        )
+        # Validate required claims
+        if not payload.get("sub"):
+            logger.debug("JWT missing required 'sub' claim.")
+            return None
         return payload
     except jwt.ExpiredSignatureError:
         logger.debug("JWT token has expired.")

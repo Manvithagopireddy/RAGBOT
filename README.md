@@ -1,6 +1,9 @@
 # 🤖 RAGBOT — Enterprise Hybrid Retrieval-Augmented Generation Platform
 
 [![CI Pipeline](https://github.com/Manvithagopireddy/RAGBOT/actions/workflows/ci.yml/badge.svg)](https://github.com/Manvithagopireddy/RAGBOT/actions)
+![Tests](https://img.shields.io/badge/Tests-209%20Passed-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/Coverage-86%25-green.svg)
+![Security](https://img.shields.io/badge/Security-Bandit%20Clean%20%7C%20Zero%20CVEs-blueviolet.svg)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB.svg?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=black)

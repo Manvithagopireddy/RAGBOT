@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 
 from api.dependencies import (
     check_rate_limit,
-    get_current_user_optional,
+    get_current_user,
     get_rag_service,
 )
 from api.schemas import ChatRequest, ChatResponse
@@ -20,11 +20,12 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 def send_chat_message(
     payload: ChatRequest,
     rag: RAGService = Depends(get_rag_service),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Submits a user prompt, retrieves relevant knowledge base context via hybrid search,
     invokes Gemini, and returns a grounded response with source citations.
+    Requires valid JWT authentication.
     """
     clean_question = sanitize_html(payload.message.strip())
     if not clean_question:
@@ -56,22 +57,28 @@ def send_chat_message(
             confidence_desc=result["confidence_desc"],
             model=result["model"],
         )
+    except PermissionError as perm_err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(perm_err),
+        ) from perm_err
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Chat generation error: {exc}",
-        )
+            detail="Chat generation failed. Please try again.",
+        ) from exc
 
 
 @router.post("/stream", dependencies=[Depends(check_rate_limit)])
 def stream_chat_message(
     payload: ChatRequest,
     rag: RAGService = Depends(get_rag_service),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Streams a grounded response in real-time using Server-Sent Events (SSE).
     Emits events: metadata, citations, token, and done.
+    Requires valid JWT authentication.
     """
     clean_question = sanitize_html(payload.message.strip())
     if not clean_question:

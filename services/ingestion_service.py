@@ -25,7 +25,7 @@ from services.retrieval_service import retrieval_service
 from src.bm25_retriever import BM25Retriever, build_bm25_index
 from src.document_loader import load_file
 from src.embeddings import get_embeddings
-from src.file_handler import MAX_UPLOAD_BYTES, SUPPORTED_EXTENSIONS, _safe_filename
+from src.file_handler import MAX_UPLOAD_BYTES, SUPPORTED_EXTENSIONS, _safe_filename, verify_magic_bytes
 from src.logger import get_logger
 from src.text_splitter import split_documents
 from storage import ChatStore
@@ -71,7 +71,12 @@ class IngestionService:
                 f"File is too large ({mb:.1f} MB). Maximum allowed size is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB."
             )
 
-        # 2. Compute Checksum
+        # 2. Magic byte content verification
+        valid_magic, magic_err = verify_magic_bytes(raw_bytes, ext)
+        if not valid_magic:
+            raise ValueError(f"File content validation failed: {magic_err}")
+
+        # 3. Compute Checksum
         checksum = hashlib.sha256(raw_bytes).hexdigest()
 
         # Check if identical checksum already exists for this user
@@ -173,22 +178,91 @@ class IngestionService:
 
     def delete_document(self, document_id: str, user_id: Optional[str] = None) -> bool:
         """
-        Deletes a document from the catalog and filesystem.
+        Deletes a document completely:
+        1. Validates ownership (returns False if not found/unauthorized).
+        2. Removes the uploaded file from disk.
+        3. Rebuilds the user's FAISS and BM25 indexes excluding the deleted document's chunks.
+           This is the only safe way to remove vectors from FAISS (no incremental vector deletion).
+        4. Persists the updated index to disk.
+        5. Removes the database record.
+
+        Note: Historical chat messages that quoted this document's content are preserved as-is.
+        Only the retrieval index is updated — past citations remain in message history.
         """
         doc = self.store.get_document(document_id, user_id=user_id)
         if not doc:
             return False
 
-        # Remove file from disk if present
+        # 1. Remove file from disk if present
         file_path = doc.get("file_path")
         if file_path:
             p = Path(file_path)
             p.unlink(missing_ok=True)
 
-        # Delete database record
+        # 2. Delete database record first (before index rebuild to avoid race)
         success = self.store.delete_document(document_id, user_id=user_id)
-        logger.info(f"Deleted document {document_id} (success: {success})")
+        if not success:
+            logger.warning(f"Database deletion returned False for document {document_id}")
+
+        # 3. Rebuild FAISS and BM25 without the deleted document's chunks.
+        #    Strategy: re-index all *remaining* documents for this user from disk.
+        #    Chunks from the deleted doc will be excluded because they no longer appear in the catalog.
+        self._rebuild_indexes_excluding(document_id)
+
+        logger.info(f"Deleted document {document_id} and rebuilt retrieval indexes (success: {success})")
         return success
+
+    def _rebuild_indexes_excluding(self, excluded_document_id: str) -> None:
+        """
+        Rebuilds the global FAISS and BM25 indexes from scratch, excluding
+        any chunk whose document_id metadata matches excluded_document_id.
+
+        This is the safe approach for FAISS which doesn't support incremental deletion.
+        The rebuilt index still contains knowledge-base documents and all other users'
+        documents (filtered at retrieval time by ownership metadata).
+        """
+        try:
+            current_bm25 = retrieval_service.bm25_retriever
+
+            # Collect surviving chunks from BM25 (excludes the deleted doc)
+            surviving_chunks = []
+            if current_bm25 is not None and current_bm25.documents:
+                for chunk in current_bm25.documents:
+                    chunk_doc_id = chunk.metadata.get("document_id")
+                    if chunk_doc_id != excluded_document_id:
+                        surviving_chunks.append(chunk)
+
+            if not surviving_chunks:
+                # All chunks removed — clear indexes
+                VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
+                retrieval_service.set_indexes(None, None)
+                # Remove persisted index files
+                for f in VECTOR_STORE_DIR.glob(f"{FAISS_INDEX_NAME}.*"):
+                    f.unlink(missing_ok=True)
+                BM25_INDEX_PATH.unlink(missing_ok=True)
+                logger.info(f"All chunks removed after deleting {excluded_document_id}. Cleared indexes.")
+                return
+
+            # Rebuild BM25 from surviving chunks
+            new_bm25 = build_bm25_index(surviving_chunks, save_path=BM25_INDEX_PATH)
+
+            # Rebuild FAISS from surviving chunks
+            embeddings = get_embeddings()
+            new_faiss = FAISS.from_documents(surviving_chunks, embeddings)
+            VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
+            new_faiss.save_local(folder_path=str(VECTOR_STORE_DIR), index_name=FAISS_INDEX_NAME)
+
+            retrieval_service.set_indexes(new_faiss, new_bm25)
+            logger.info(
+                f"Rebuilt indexes after deleting {excluded_document_id}: "
+                f"{len(surviving_chunks)} surviving chunks, "
+                f"{new_faiss.index.ntotal if hasattr(new_faiss, 'index') else '?'} FAISS vectors."
+            )
+        except Exception as exc:
+            logger.error(f"Index rebuild failed after deleting {excluded_document_id}: {exc}", exc_info=True)
+            # Do not re-raise — the DB deletion already succeeded. The stale FAISS data
+            # will not appear in results for this user because the ownership filter in
+            # retrieval_service excludes it (document_id no longer in user's catalog).
 
     def reindex_document(self, document_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
         """
