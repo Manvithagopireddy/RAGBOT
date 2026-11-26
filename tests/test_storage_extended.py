@@ -53,3 +53,18 @@ def test_message_lifecycle(store):
     assert [m["message_id"] for m in store.get_messages(session)] == [first]
     store.clear_messages(session)
     assert store.get_message_count(session) == 0
+
+
+def test_analytics_and_grouped_sessions(store):
+    session = store.create_session(title="Analytics")
+    store.add_message(session, "user", "Question")
+    answer = store.add_message(session, "assistant", "Answer", confidence_score=80)
+    store.update_message_feedback(answer, "up")
+    stats = store.get_analytics()
+    assert stats["total_sessions"] == 1
+    assert stats["total_messages"] == 2
+    assert stats["thumbs_up"] == 1
+    assert stats["avg_confidence"] == 80
+    assert store.get_sessions_grouped()["Today"][0]["session_id"] == session
+    store.toggle_session_archive(session)
+    assert all(not items for items in store.get_sessions_grouped().values())
