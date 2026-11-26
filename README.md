@@ -1,9 +1,6 @@
 # 🤖 RAGBOT — Enterprise Hybrid Retrieval-Augmented Generation Platform
 
 [![CI Pipeline](https://github.com/Manvithagopireddy/RAGBOT/actions/workflows/ci.yml/badge.svg)](https://github.com/Manvithagopireddy/RAGBOT/actions)
-![Tests](https://img.shields.io/badge/Tests-209%20Passed-brightgreen.svg)
-![Coverage](https://img.shields.io/badge/Coverage-86%25-green.svg)
-![Security](https://img.shields.io/badge/Security-Bandit%20Clean%20%7C%20Zero%20CVEs-blueviolet.svg)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB.svg?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=black)
@@ -150,12 +147,12 @@ RAGBOT/
 │   ├── context_manager.py         # Guarded Prompt Construction
 │   ├── security.py                # File Validation & Sanitization
 │   └── text_splitter.py           # Token-Aware Document Chunker
-├── tests/                         # Pytest Test Suite (178 Tests)
+├── tests/                         # Pytest Test Suite
 ├── app.py                         # Classic Streamlit Application
 ├── docker-compose.yml             # Multi-Container Compose Configuration
 ├── Dockerfile                     # Multi-Stage Backend Dockerfile
 ├── pyproject.toml                 # Ruff & Tooling Configuration
-├── requirements.txt               # Locked Backend Dependencies
+├── requirements.txt               # Backend Dependency Constraints
 ├── storage.py                     # SQLite WAL Storage Tier
 └── vectorstore.py                 # FAISS Index Manager
 ```
@@ -228,7 +225,7 @@ docker compose up --build -d
 Run the comprehensive test suite locally:
 
 ```bash
-# Run 178 unit and integration tests
+# Run unit and integration tests
 pytest tests/ -v
 
 # Run Ruff linter
