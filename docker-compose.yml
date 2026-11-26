@@ -8,11 +8,11 @@ services:
       dockerfile: Dockerfile
     container_name: ragbot_backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-ragbot-prod-secret-change-in-env}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Set a strong JWT_SECRET_KEY in .env}
       - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173
     volumes:
       - ragbot_chats:/app/chats
@@ -48,7 +48,7 @@ services:
     container_name: ragbot_streamlit
     command: ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8501:8501"
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
