@@ -8,6 +8,8 @@ Provides the versioned REST API for RAGBOT:
   - Centralized exception handling — no stack traces exposed to clients
   - Swagger UI documentation at /docs and ReDoc at /redoc
 """
+import time
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, status
@@ -64,6 +66,34 @@ class RequestBodyLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class RequestObservabilityMiddleware(BaseHTTPMiddleware):
+    """
+    Observability & Tracing Middleware (Phase 14):
+    - Generates or propagates unique correlation ID (X-Request-ID).
+    - Measures high-resolution request duration and attaches X-Process-Time header.
+    - Emits structured operational log for every request with latency and client metadata.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+        start_time = time.perf_counter()
+
+        response = await call_next(request)
+
+        duration_ms = (time.perf_counter() - start_time) * 1000.0
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Process-Time"] = f"{duration_ms:.2f}ms"
+
+        # Log operational request metrics
+        client_host = request.client.host if request.client else "unknown"
+        logger.info(
+            f"HTTP {request.method} {request.url.path} "
+            f"status={response.status_code} latency={duration_ms:.2f}ms "
+            f"request_id={request_id} client={client_host}"
+        )
+        return response
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for application startup and shutdown events."""
@@ -82,6 +112,7 @@ app = FastAPI(
 )
 
 # ── Security & Limit Middlewares ──────────────────────────────────────────────
+app.add_middleware(RequestObservabilityMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestBodyLimitMiddleware)
 
@@ -91,7 +122,8 @@ app.add_middleware(
     allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
+    expose_headers=["X-Request-ID", "X-Process-Time"],
 )
 
 
