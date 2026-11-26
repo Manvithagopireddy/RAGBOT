@@ -136,6 +136,7 @@ export const api = {
 
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
+      let completed = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -168,8 +169,9 @@ export const api = {
                 callbacks.onCitations(parsed);
               } else if (eventType === 'token' && callbacks.onToken) {
                 callbacks.onToken(parsed.token || '');
-              } else if (eventType === 'done' && callbacks.onDone) {
-                callbacks.onDone(parsed);
+              } else if (eventType === 'done') {
+                completed = true;
+                callbacks.onDone?.(parsed);
               }
             } catch (pErr) {
               console.error('Failed to parse SSE JSON chunk:', dataStr, pErr);
@@ -177,6 +179,7 @@ export const api = {
           }
         }
       }
+      if (!completed) throw new Error('The response stream ended before completion. Please retry.');
     } catch (err: any) {
       if (callbacks.onError) callbacks.onError(err);
     }
