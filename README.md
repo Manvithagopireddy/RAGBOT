@@ -172,7 +172,7 @@ git clone https://github.com/Manvithagopireddy/RAGBOT.git
 cd RAGBOT
 
 cp .env.example .env
-# Edit .env and insert your GEMINI_API_KEY
+# Edit .env: set GOOGLE_API_KEY and a strong JWT_SECRET_KEY
 ```
 
 ### 3. Backend Setup
@@ -206,17 +206,18 @@ streamlit run app.py
 
 ## 🐳 Docker Deployment
 
-Run the complete multi-tier stack with a single command:
+Set a strong `JWT_SECRET_KEY` and your `GOOGLE_API_KEY` in `.env` before starting. The backend is bound to loopback; the frontend proxies API requests. For a public service, configure HTTPS and persistent storage, restrict network access, and verify real-model functionality. Run the primary stack with:
 
 ```bash
 docker compose up --build -d
+# Optional isolated legacy demo: docker compose --profile legacy up --build -d
 ```
 
 | Service | Container URL | Purpose |
 |---|---|---|
 | **React Frontend** | `http://localhost:5173` | Production React SPA served via Nginx |
 | **FastAPI Backend** | `http://localhost:8000` | REST API & Swagger UI (`/docs`) |
-| **Streamlit UI** | `http://localhost:8501` | Interactive dashboard |
+| **Streamlit UI (opt-in legacy profile)** | `http://localhost:8501` | Isolated local dashboard |
 
 ---
 
