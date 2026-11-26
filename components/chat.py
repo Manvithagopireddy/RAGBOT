@@ -21,7 +21,7 @@ Fixes applied (Phase 2):
   SEC-001  Clipboard JS strings now use json.dumps() for safe JS encoding,
            preventing XSS via special characters in LLM output.
 """
-import json as _json  # used for safe JS string encoding (SEC-001)
+import base64
 import textwrap
 
 # pyright: ignore [missing-import]
@@ -233,9 +233,8 @@ def _render_message_history(messages: list, chat_store=None, active_session_id: 
 
             st.markdown(content)
 
-            # SEC-001 FIX: use json.dumps() for safe JS string encoding.
-            # The old manual escape missed ", <, >, newlines — all XSS vectors.
-            js_safe_content = _json.dumps(content)   # e.g. → "\"hello\\nworld\""
+            # SEC-001 & BUG FIX: Base64 encode content to avoid quote collisions in HTML attributes
+            b64_content = base64.b64encode(content.encode("utf-8")).decode("ascii")
 
             if role == "assistant":
                 src_type = msg.get("source_type", "🧠 AI General Knowledge")
@@ -289,24 +288,17 @@ def _render_message_history(messages: list, chat_store=None, active_session_id: 
                 if msg.get("confidence_score") is not None and src_type == "📄 Knowledge Base":
                     render_confidence_gauge(msg["confidence_score"], msg.get("confidence_desc", ""))
 
-                # Clipboard Copy — SEC-001: json.dumps produces a safely-quoted JS string
+                # Clipboard Copy — delegated click handler via bottech-copy-btn and data-clipboard-text
                 st.markdown(textwrap.dedent(f"""
                     <div class="msg-actions-container" style="display:flex;align-items:center;gap:6px;margin-top:6px;opacity:0.6;">
-                        <button onclick="navigator.clipboard.writeText({js_safe_content}).then(()=>{{
-                            this.innerText='✓ Copied';this.style.color='#10b981';
-                            setTimeout(()=>{{this.innerText='📋 Copy';this.style.color='';}},2000);
-                        }})" class="msg-action-btn" style="padding:2px 8px;font-size:0.72rem;border-radius:4px;cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;">📋 Copy</button>
+                        <button class="msg-action-btn bottech-copy-btn" data-clipboard-text="{b64_content}" style="padding:2px 8px;font-size:0.72rem;border-radius:4px;cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;">📋 Copy</button>
                     </div>
                 """).strip(), unsafe_allow_html=True)
 
             else:  # user message
-                # SEC-001 FIX: same json.dumps approach for user messages
                 st.markdown(textwrap.dedent(f"""
                     <div class="msg-actions-container" style="display:flex;align-items:center;gap:6px;margin-top:6px;justify-content:flex-end;opacity:0.6;transition:opacity 0.2s;">
-                        <button onclick="navigator.clipboard.writeText({js_safe_content}).then(()=>{{
-                            this.innerText='✓';this.style.color='#10b981';
-                            setTimeout(()=>{{this.innerText='📋';this.style.color='';}},2000);
-                        }})" class="msg-action-btn" title="Copy" style="padding:2px 6px;font-size:0.72rem;border-radius:4px;cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;">📋</button>
+                        <button class="msg-action-btn bottech-copy-btn" data-clipboard-text="{b64_content}" title="Copy" style="padding:2px 6px;font-size:0.72rem;border-radius:4px;cursor:pointer;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;">📋</button>
                     </div>
                 """).strip(), unsafe_allow_html=True)
 

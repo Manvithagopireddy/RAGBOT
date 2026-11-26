@@ -41,7 +41,7 @@ def get_retrieval_service() -> RetrievalService:
     return retrieval_service
 
 
-def check_rate_limit(request: Request):
+def check_rate_limit(request: Request) -> None:
     """
     Applies sliding-window rate limiting per client IP address.
     Raises HTTP 429 Too Many Requests if rate limit is exceeded.
@@ -56,22 +56,38 @@ def check_rate_limit(request: Request):
         )
 
 
-def get_current_user_optional(
-    auth: Optional[HTTPAuthorizationCredentials] = Security(security_scheme),
-    store: ChatStore = Depends(get_chat_store),
+def _resolve_user_from_token(
+    auth: Optional[HTTPAuthorizationCredentials],
+    store: ChatStore,
+    require_auth: bool,
 ) -> Dict[str, Any]:
     """
-    Returns the authenticated user dict if a valid JWT bearer token is present;
-    otherwise rejects the request.
+    Core token resolution — shared by optional and required auth paths.
+    Never falls back to a privileged default user.
     """
     if auth and auth.credentials:
         payload = decode_access_token(auth.credentials)
-        if payload and "sub" in payload:
+        if payload and payload.get("sub"):
             user = store.get_user_by_id(payload["sub"])
             if user:
                 return user
+        # Token was present but invalid/expired — always 401 (never silent fallback)
+        if require_auth:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired access token.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        # For optional auth — return None-equivalent guest with zero privileges
+        return {"user_id": None, "username": "anonymous", "role": "guest"}
 
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.", headers={"WWW-Authenticate": "Bearer"})
+    if require_auth:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication credentials were not provided.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return {"user_id": None, "username": "anonymous", "role": "guest"}
 
 
 def get_current_user(
@@ -79,29 +95,20 @@ def get_current_user(
     store: ChatStore = Depends(get_chat_store),
 ) -> Dict[str, Any]:
     """
-    Enforces JWT authentication. Raises HTTP 401 Unauthorized if token is missing or invalid.
+    Enforces JWT authentication. Raises HTTP 401 Unauthorized if token is missing,
+    invalid, expired, or forged. Never falls back to a default admin user.
     """
-    if not auth or not auth.credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication credentials were not provided.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    return _resolve_user_from_token(auth, store, require_auth=True)
 
-    payload = decode_access_token(auth.credentials)
-    if not payload or "sub" not in payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired access token.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
 
-    user = store.get_user_by_id(payload["sub"])
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User associated with token no longer exists.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def get_current_user_optional(
+    auth: Optional[HTTPAuthorizationCredentials] = Security(security_scheme),
+    store: ChatStore = Depends(get_chat_store),
+) -> Dict[str, Any]:
+    """
+    Returns the authenticated user dict if a valid JWT bearer token is present;
+    returns an anonymous guest dict (user_id=None) otherwise.
+    NEVER grants admin or default_user privileges to unauthenticated callers.
+    """
+    return _resolve_user_from_token(auth, store, require_auth=False)
 
-    return user

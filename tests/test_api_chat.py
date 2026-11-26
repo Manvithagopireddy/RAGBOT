@@ -1,11 +1,18 @@
 """
 test_api_chat.py — Tests for Synchronous Chat, SSE Streaming Chat, and Diagnostics Endpoints.
+Includes auth enforcement verification (Phase 1).
 """
 from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
+from api.dependencies import (
+    get_chat_store,
+    get_current_user,
+    get_rag_service,
+    get_retrieval_service,
+)
 from api.main import app
 from services.rag_service import RAGService
 from services.retrieval_service import RetrievalService
@@ -20,10 +27,18 @@ def chat_client(tmp_path):
     test_rag = RAGService(db_store=test_store)
     test_retrieval = RetrievalService()
 
-    from api.dependencies import get_chat_store, get_rag_service, get_retrieval_service
+    # Seed authenticated user in test DB to satisfy FK constraints
+    test_user = test_store.create_user(
+        username="chatuser",
+        email="chatuser@example.com",
+        hashed_password="mock_hashed_pw",
+        role="user",
+    )
+
     app.dependency_overrides[get_chat_store] = lambda: test_store
     app.dependency_overrides[get_rag_service] = lambda: test_rag
     app.dependency_overrides[get_retrieval_service] = lambda: test_retrieval
+    app.dependency_overrides[get_current_user] = lambda: test_user
 
     with TestClient(app) as test_client:
         yield test_client, test_rag, test_retrieval
@@ -97,7 +112,10 @@ class TestChatEndpoints:
         monkeypatch.setattr(
             retrieval,
             "retrieve",
-            lambda query, k, threshold, hybrid, rerank: ([mock_result], {"latency_ms": 12.5, "query": query}),
+            lambda query, k, threshold=0.0, hybrid=True, rerank=True, user_id=None: (
+                [mock_result],
+                {"latency_ms": 12.5, "query": query},
+            ),
         )
 
         res = client.post("/api/v1/diagnostics/retrieve", json={
@@ -111,3 +129,16 @@ class TestChatEndpoints:
         assert len(data["results"]) == 1
         assert data["results"][0]["source"] == "test.pdf"
         assert data["results"][0]["similarity"] == 0.91
+
+    def test_unauthenticated_requests_fail(self):
+        """Verifies that endpoints without valid auth return 401."""
+        app.dependency_overrides.clear()
+        with TestClient(app) as unauth_client:
+            res_chat = unauth_client.post("/api/v1/chat", json={"message": "hello"})
+            assert res_chat.status_code == 401
+
+            res_stream = unauth_client.post("/api/v1/chat/stream", json={"message": "hello"})
+            assert res_stream.status_code == 401
+
+            res_diag = unauth_client.post("/api/v1/diagnostics/retrieve", json={"query": "hello"})
+            assert res_diag.status_code == 401

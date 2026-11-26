@@ -3,8 +3,9 @@ main.py — FastAPI Application Entrypoint.
 
 Provides the versioned REST API for RAGBOT:
   - Versioned routes under /api/v1 (health, auth, chat, documents, sessions, diagnostics)
-  - CORS middleware
-  - Centralized exception handling
+  - CORS middleware (restricted to configured origins only)
+  - Security response headers (X-Content-Type-Options, X-Frame-Options, etc.)
+  - Centralized exception handling — no stack traces exposed to clients
   - Swagger UI documentation at /docs and ReDoc at /redoc
 """
 from contextlib import asynccontextmanager
@@ -12,12 +13,26 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.routes import auth, chat, diagnostics, documents, health, sessions
 from config.settings import API_V1_PREFIX, CORS_ORIGINS
 from src.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Adds standard security response headers to every response."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
 
 @asynccontextmanager
@@ -37,13 +52,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── CORS Middleware ───────────────────────────────────────────────────────────
+# ── Security Headers ──────────────────────────────────────────────────────────
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ── CORS Middleware (restricted to configured origins) ────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 
@@ -65,8 +83,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    """Centralized fallback handler for unexpected exceptions."""
-    logger.error(f"Unhandled exception on {request.method} {request.url}: {exc}", exc_info=True)
+    """Centralized fallback handler for unexpected exceptions. Never exposes stack traces."""
+    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {type(exc).__name__}", exc_info=True)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={

@@ -21,7 +21,7 @@ Design notes:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from langchain_community.vectorstores import FAISS  # pyright: ignore
 from langchain_core.documents import Document
@@ -51,6 +51,10 @@ class RetrievalResult:
     @property
     def source(self) -> str:
         return self.document.metadata.get("source", "Unknown")
+
+    @property
+    def document_id(self) -> Optional[str]:
+        return self.document.metadata.get("document_id")
 
     @property
     def page(self) -> int:

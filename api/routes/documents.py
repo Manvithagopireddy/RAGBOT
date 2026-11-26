@@ -1,5 +1,6 @@
 """
 documents.py — Document Upload, Catalog, and Index Management Routes.
+All endpoints require valid JWT authentication. User ID is derived from the token — never from the request body.
 """
 from typing import List
 
@@ -7,7 +8,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from api.dependencies import (
     check_rate_limit,
-    get_current_user_optional,
+    get_current_user,
     get_ingestion_service,
 )
 from api.schemas import DocumentResponse, DocumentUploadResponse
@@ -21,10 +22,11 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
 async def upload_document(
     file: UploadFile = File(...),
     ingestion: IngestionService = Depends(get_ingestion_service),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Uploads and indexes a document (PDF, DOCX, TXT, CSV, PPTX) into FAISS and BM25.
+    Document is owned by the authenticated user. User ID is derived from JWT — never from body.
     """
     try:
         raw_bytes = await file.read(MAX_UPLOAD_BYTES + 1)
@@ -46,20 +48,20 @@ async def upload_document(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(val_err),
         )
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Document ingestion failed.",
-        )
+            detail="Document ingestion failed. Please try again.",
+        ) from exc
 
 
 @router.get("", response_model=List[DocumentResponse])
 def list_documents(
     ingestion: IngestionService = Depends(get_ingestion_service),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
-    Lists all documents belonging to the current user (or public/default documents).
+    Lists all documents belonging to the authenticated user only.
     """
     docs = ingestion.list_documents(user_id=current_user["user_id"])
     return [DocumentResponse(**d) for d in docs]
@@ -69,16 +71,18 @@ def list_documents(
 def delete_document(
     document_id: str,
     ingestion: IngestionService = Depends(get_ingestion_service),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
-    Deletes a document from the catalog and filesystem.
+    Deletes a document from the catalog, filesystem, FAISS index, and BM25 index.
+    Returns 404 if the document does not belong to the authenticated user.
     """
     success = ingestion.delete_document(document_id, user_id=current_user["user_id"])
     if not success:
+        # Return 404 — not 403 — to avoid confirming existence to unauthorized callers
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Document '{document_id}' not found or access denied.",
+            detail=f"Document '{document_id}' not found.",
         )
     return {"message": f"Document '{document_id}' deleted successfully."}
 
@@ -87,10 +91,11 @@ def delete_document(
 def reindex_document(
     document_id: str,
     ingestion: IngestionService = Depends(get_ingestion_service),
-    current_user: dict = Depends(get_current_user_optional),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Re-chunks and re-indexes an existing document from disk.
+    Validates ownership before re-indexing.
     """
     try:
         doc = ingestion.reindex_document(document_id, user_id=current_user["user_id"])
@@ -99,8 +104,8 @@ def reindex_document(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(fnf))
     except ValueError as val_err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_err))
-    except Exception:
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Reindexing failed.",
-        )
+            detail="Reindexing failed. Please try again.",
+        ) from exc

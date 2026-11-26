@@ -77,10 +77,18 @@ class RAGService:
         # Build memory from prior turns (excluding current question)
         memory = self._prepare_memory(session_id)
 
-        # Run pipeline
+        # Run pipeline with isolated retrieval scoped to user_id
         db = retrieval_service.faiss_store
         bm25 = retrieval_service.bm25_retriever
         web_citations: List[Dict[str, Any]] = []
+
+        retrieved_results, _ = retrieval_service.retrieve(
+            query=question,
+            k=retriever_k,
+            hybrid=hybrid,
+            rerank=rerank,
+            user_id=user_id,
+        )
 
         token_gen, citations, avg_sim = execute_rag_pipeline(
             db=db,
@@ -92,6 +100,7 @@ class RAGService:
             persona=persona,
             web_search=web_search,
             web_citations=web_citations,
+            pre_retrieved=retrieved_results,
             bm25=bm25,
             hybrid=hybrid,
             rerank=rerank,
@@ -182,6 +191,14 @@ class RAGService:
         bm25 = retrieval_service.bm25_retriever
         web_citations: List[Dict[str, Any]] = []
 
+        retrieved_results, _ = retrieval_service.retrieve(
+            query=question,
+            k=retriever_k,
+            hybrid=hybrid,
+            rerank=rerank,
+            user_id=user_id,
+        )
+
         token_gen, citations, avg_sim = execute_rag_pipeline(
             db=db,
             memory=memory,
@@ -192,6 +209,7 @@ class RAGService:
             persona=persona,
             web_search=web_search,
             web_citations=web_citations,
+            pre_retrieved=retrieved_results,
             bm25=bm25,
             hybrid=hybrid,
             rerank=rerank,

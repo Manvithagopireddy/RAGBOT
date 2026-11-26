@@ -66,9 +66,10 @@ PROMPT_INJECTION_DEFENSE = True
 
 # API & Security Configuration
 API_V1_PREFIX = "/api/v1"
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "ragbot-insecure-dev-secret-change-in-production-2026")
+# JWT secret — loaded from env only. The src/security.py module validates this at startup.
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "")  # Empty string forces validation in security.py
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))  # 1 hour default
 RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "60"))
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173").split(",")
 

@@ -1,9 +1,15 @@
 """
 test_api_sessions_and_docs.py — Tests for Session CRUD and Document Upload/Listing Endpoints.
+Includes auth enforcement verification (Phase 1).
 """
 import pytest
 from fastapi.testclient import TestClient
 
+from api.dependencies import (
+    get_chat_store,
+    get_current_user,
+    get_ingestion_service,
+)
 from api.main import app
 from services.ingestion_service import IngestionService
 from storage import ChatStore
@@ -15,9 +21,17 @@ def client_and_store(tmp_path):
     test_store = ChatStore(test_db)
     test_ingestion = IngestionService(db_store=test_store)
 
-    from api.dependencies import get_chat_store, get_ingestion_service
+    # Seed authenticated user in test DB to satisfy FK constraints
+    test_user = test_store.create_user(
+        username="sessionuser",
+        email="sessionuser@example.com",
+        hashed_password="mock_hashed_pw",
+        role="user",
+    )
+
     app.dependency_overrides[get_chat_store] = lambda: test_store
     app.dependency_overrides[get_ingestion_service] = lambda: test_ingestion
+    app.dependency_overrides[get_current_user] = lambda: test_user
 
     with TestClient(app) as test_client:
         yield test_client, test_store
@@ -75,6 +89,12 @@ class TestSessionEndpoints:
         get_again = client.get(f"/api/v1/sessions/{session_id}")
         assert get_again.status_code == 404
 
+    def test_unauthenticated_sessions_return_401(self):
+        app.dependency_overrides.clear()
+        with TestClient(app) as client:
+            assert client.get("/api/v1/sessions").status_code == 401
+            assert client.post("/api/v1/sessions", json={"title": "Test"}).status_code == 401
+
 
 class TestDocumentEndpoints:
     def test_upload_invalid_extension(self, client_and_store):
@@ -106,6 +126,7 @@ class TestDocumentEndpoints:
             def embed_query(self, text):
                 return [0.1] * 384
 
+        monkeypatch.setattr("src.embeddings.get_embeddings", lambda: DummyEmbeddings())
         monkeypatch.setattr("services.ingestion_service.get_embeddings", lambda: DummyEmbeddings())
 
         content = b"This is a test document explaining Retrieval Augmented Generation architecture."
@@ -131,3 +152,9 @@ class TestDocumentEndpoints:
         # Delete document
         del_res = client.delete(f"/api/v1/documents/{doc_id}")
         assert del_res.status_code == 200
+
+    def test_unauthenticated_documents_return_401(self):
+        app.dependency_overrides.clear()
+        with TestClient(app) as client:
+            assert client.get("/api/v1/documents").status_code == 401
+            assert client.post("/api/v1/documents/upload").status_code == 401
