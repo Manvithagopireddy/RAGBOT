@@ -39,7 +39,7 @@ jobs:
 
       - name: Install backend dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip 'setuptools>=84.1.0'
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
           pip install ruff mypy bandit pip-audit
@@ -59,8 +59,12 @@ jobs:
       - name: Run Pip-Audit Dependency Security Scan
         run: |
           pip-audit
+          python -c 'import torch; assert torch.version.cuda is None; print(torch.__version__.split("+")[0])' > torch-version.txt
+          printf 'torch==%s\n' "$(cat torch-version.txt)" > torch-audit.txt
+          pip-audit --no-deps --disable-pip -r torch-audit.txt
 
       - name: Run Automated Test Suite with Coverage
+        if: success() || failure()
         run: |
           pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=xml
 
@@ -70,6 +74,7 @@ jobs:
         with:
           name: coverage-report
           path: coverage.xml
+          if-no-files-found: error
           retention-days: 7
 
   frontend-build:
@@ -129,8 +134,8 @@ jobs:
           push: false
           load: true
           tags: ragbot-frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=ragbot-frontend
+          cache-to: type=gha,mode=max,scope=ragbot-frontend
 
       - name: Run container integration smoke checks
         run: |
