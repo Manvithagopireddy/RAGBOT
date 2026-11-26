@@ -22,7 +22,7 @@ from config.settings import (
     RERANKING_ENABLED,
     RETRIEVER_K,
 )
-from rag import _calculate_confidence, execute_rag_pipeline
+from rag import _calculate_confidence, _condense_query, execute_rag_pipeline
 from services.retrieval_service import retrieval_service
 from src.logger import get_logger
 from storage import ChatStore
@@ -86,8 +86,9 @@ class RAGService:
         bm25 = retrieval_service.bm25_retriever
         web_citations: List[Dict[str, Any]] = []
 
+        standalone_query = _condense_query(question, memory.format_chat_history(limit=6), model=model)
         retrieved_results, _ = retrieval_service.retrieve(
-            query=question,
+            query=standalone_query,
             k=retriever_k,
             hybrid=hybrid,
             rerank=rerank,
@@ -199,8 +200,9 @@ class RAGService:
         bm25 = retrieval_service.bm25_retriever
         web_citations: List[Dict[str, Any]] = []
 
+        standalone_query = _condense_query(question, memory.format_chat_history(limit=6), model=model)
         retrieved_results, _ = retrieval_service.retrieve(
-            query=question,
+            query=standalone_query,
             k=retriever_k,
             hybrid=hybrid,
             rerank=rerank,
