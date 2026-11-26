@@ -115,3 +115,22 @@ class TestAuthEndpoints:
     def test_me_without_token_returns_401(self, client):
         res = client.get("/api/v1/auth/me")
         assert res.status_code == 401
+
+
+def test_patch_cors_preflight(client):
+    response = client.options("/api/v1/sessions/example", headers={
+        "Origin": "http://localhost:3000",
+        "Access-Control-Request-Method": "PATCH",
+        "Access-Control-Request-Headers": "authorization,content-type",
+    })
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+
+def test_untrusted_cors_origin(client):
+    response = client.options("/api/v1/sessions/example", headers={
+        "Origin": "https://untrusted.example",
+        "Access-Control-Request-Method": "PATCH",
+    })
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers

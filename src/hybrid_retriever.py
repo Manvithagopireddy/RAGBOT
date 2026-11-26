@@ -8,6 +8,7 @@ Implements:
 """
 from __future__ import annotations
 
+from hashlib import sha256
 from typing import Dict, List, Optional, Tuple
 
 from langchain_community.vectorstores import FAISS
@@ -28,8 +29,8 @@ def _doc_key(doc: Document) -> str:
         return str(chunk_id)
     source = doc.metadata.get("source", "unknown")
     page = doc.metadata.get("page", 0)
-    snippet = doc.page_content.strip()[:100]
-    return f"{source}::p{page}::{hash(snippet)}"
+    digest = sha256(doc.page_content.strip().encode("utf-8")).hexdigest()
+    return f"{source}::p{page}::{digest}"
 
 
 def reciprocal_rank_fusion(
@@ -53,6 +54,8 @@ def reciprocal_rank_fusion(
     # Dense scoring
     for rank_0, res in enumerate(dense_results):
         key = _doc_key(res.document)
+        if key in dense_scores:
+            continue
         doc_map[key] = res.document
         dense_scores[key] = res.similarity
         scores[key] = scores.get(key, 0.0) + (1.0 / (rrf_k + (rank_0 + 1)))
@@ -60,6 +63,8 @@ def reciprocal_rank_fusion(
     # Sparse scoring
     for rank_0, res in enumerate(sparse_results):
         key = _doc_key(res.document)
+        if key in sparse_scores:
+            continue
         doc_map[key] = res.document
         sparse_scores[key] = res.similarity
         scores[key] = scores.get(key, 0.0) + (1.0 / (rrf_k + (rank_0 + 1)))

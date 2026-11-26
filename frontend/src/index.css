@@ -41,3 +41,9 @@ code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.88em;
 }
+
+/* Keyboard accessibility and reduced-motion preferences */
+:focus-visible { outline: 2px solid #2dd4bf; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

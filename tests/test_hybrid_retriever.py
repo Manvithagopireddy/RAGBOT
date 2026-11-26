@@ -81,3 +81,18 @@ class TestHybridRetriever:
     def test_retrieve_hybrid_empty_query(self):
         results = retrieve_hybrid(db=None, bm25=None, query="")
         assert results == []
+
+
+    def test_fallback_identity_uses_entire_chunk(self):
+        prefix = "same prefix " * 20
+        a = Document(page_content=prefix + "a", metadata={"source": "a.pdf", "page": 0})
+        b = Document(page_content=prefix + "b", metadata={"source": "a.pdf", "page": 0})
+        assert _doc_key(a) != _doc_key(b)
+        assert _doc_key(a) == _doc_key(a)
+
+    def test_rrf_duplicate_does_not_inflate_score(self):
+        a = _make_res("Repeated chunk")
+        b = _make_res("Independent chunk")
+        fused = reciprocal_rank_fusion([a, a], [b], top_k=2)
+        assert len(fused) == 2
+        assert fused[0].similarity == pytest.approx(fused[1].similarity)
