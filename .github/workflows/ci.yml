@@ -68,6 +68,17 @@ jobs:
         run: |
           pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=xml
 
+      - name: Record resolved Python dependencies
+        if: always()
+        run: python -m pip freeze --all > resolved-requirements.txt
+
+      - name: Upload resolved Python dependencies
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resolved-python-dependencies
+          path: resolved-requirements.txt
+
       - name: Upload Test Coverage Artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -150,6 +161,26 @@ jobs:
             sleep 2
           done
           python3 scripts/container_smoke.py
+
+      - name: Bounded health endpoint load benchmark
+        run: python scripts/load_smoke.py
+
+      - name: Upload load benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-smoke-results
+          path: load-smoke-results.json
+
+      - name: Install browser test runner
+        working-directory: frontend
+        run: |
+          npm ci
+          npm install --no-save --package-lock=false @playwright/test@1.58.2
+          npx playwright install --with-deps chromium
+
+      - name: Desktop and mobile browser tests
+        working-directory: frontend
+        run: npx playwright test e2e/browser.spec.cjs --reporter=list
 
       - name: Container diagnostics and cleanup
         if: always()

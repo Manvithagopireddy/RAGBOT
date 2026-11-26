@@ -1,0 +1,32 @@
+name: RAG evaluation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'evals/**'
+      - 'src/**'
+      - 'rag.py'
+      - '.github/workflows/evaluation.yml'
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip 'setuptools>=84.1.0'
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+      - name: Measure retrieval and extractive baseline
+        run: python -m evals.run_evaluation --offline
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rag-evaluation-results
+          path: evals/results/evaluation_results.json
+          if-no-files-found: error

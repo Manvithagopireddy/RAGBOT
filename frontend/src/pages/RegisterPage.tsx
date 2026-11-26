@@ -50,8 +50,9 @@ export const RegisterPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Username</label>
+            <label htmlFor="register-username" className="block text-slate-300 font-medium mb-1">Username</label>
             <input
+              id="register-username"
               type="text"
               required
               minLength={3}
@@ -63,8 +64,9 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Email</label>
+            <label htmlFor="register-email" className="block text-slate-300 font-medium mb-1">Email</label>
             <input
+              id="register-email"
               type="email"
               required
               value={email}
@@ -75,8 +77,9 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Password</label>
+            <label htmlFor="register-password" className="block text-slate-300 font-medium mb-1">Password</label>
             <input
+              id="register-password"
               type="password"
               required
               minLength={6}

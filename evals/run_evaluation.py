@@ -157,6 +157,7 @@ def evaluate_configuration(
 
         e2e_time_ms = retrieval_time_ms
         answer = ""
+        answer_mode = "extractive"
 
         if generate_answers and os.environ.get("GOOGLE_API_KEY"):
             try:
@@ -170,6 +171,7 @@ def evaluate_configuration(
                 )
                 e2e_time_ms = (time.perf_counter() - t_e2e_start) * 1000.0 + retrieval_time_ms
                 answer = resp.text or ""
+                answer_mode = "live_gemini"
             except Exception as e:
                 logger.warning(f"Live Gemini generation skipped for query {qid}: {e}")
                 # Extractive grounded answer fallback for offline evaluation
@@ -194,6 +196,7 @@ def evaluate_configuration(
             "precision_at_k": round(p_at_k, 4),
             "recall_at_k": round(r_at_k, 4),
             "reciprocal_rank": round(rr, 4),
+            "answer_mode": answer_mode,
             "faithfulness": round(faithfulness, 4),
             "relevance": round(relevance, 4),
             "retrieval_latency_ms": round(retrieval_time_ms, 2),
@@ -219,7 +222,7 @@ def evaluate_configuration(
     return summary
 
 
-def run_full_evaluation(k: int = 4) -> Dict[str, Any]:
+def run_full_evaluation(k: int = 4, generate_answers: bool = True) -> Dict[str, Any]:
     """Runs evaluation across all 4 configurations and writes results to JSON."""
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     dataset = load_dataset()
@@ -257,7 +260,7 @@ def run_full_evaluation(k: int = 4) -> Dict[str, Any]:
     comparison_table = []
 
     for name, retrieve_fn in configurations:
-        config_summary = evaluate_configuration(name, dataset, retrieve_fn, k=k)
+        config_summary = evaluate_configuration(name, dataset, retrieve_fn, k=k, generate_answers=generate_answers)
         all_results[name] = config_summary
         comparison_table.append({
             "Configuration": name,
@@ -270,6 +273,7 @@ def run_full_evaluation(k: int = 4) -> Dict[str, Any]:
         })
 
     output_payload = {
+        "live_generation_requested": generate_answers,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "k": k,
         "configurations": all_results,
@@ -299,4 +303,9 @@ def run_full_evaluation(k: int = 4) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    run_full_evaluation()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="RAG retrieval evaluation")
+    parser.add_argument("--offline", action="store_true", help="Use extractive answers, not Gemini")
+    args = parser.parse_args()
+    run_full_evaluation(generate_answers=not args.offline)
