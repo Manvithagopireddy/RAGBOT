@@ -24,17 +24,18 @@ export const CitationsPanel: React.FC<CitationsPanelProps> = ({
   const isMedium = score >= 50 && score < 75;
 
   return (
-    <aside className="w-80 border-l border-slate-800 bg-slate-900/40 p-4 flex flex-col h-[calc(100vh-3.5rem)] shrink-0 overflow-y-auto">
+    <aside className="absolute right-0 inset-y-0 z-40 w-full max-w-xs bg-slate-950 lg:relative lg:w-80 border-l border-slate-800 bg-slate-900/40 p-4 flex flex-col h-[calc(100vh-3.5rem)] shrink-0 overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-800">
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-teal-400" />
           <h3 className="font-semibold text-xs text-slate-100 uppercase tracking-wider">
-            Verification & Citations
+            Retrieved Sources
           </h3>
         </div>
         <button
           onClick={onClose}
+          aria-label="Close citations"
           className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded transition-colors"
         >
           <X className="w-4 h-4" />
@@ -45,7 +46,7 @@ export const CitationsPanel: React.FC<CitationsPanelProps> = ({
       {confidenceScore !== null && confidenceScore !== undefined && (
         <div className="mt-4 p-3 rounded-xl bg-slate-950/80 border border-slate-800/80">
           <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="text-slate-400 font-medium">Grounding Confidence:</span>
+            <span className="text-slate-400 font-medium">Retrieval confidence:</span>
             <span
               className={`font-mono font-bold ${
                 isHigh ? 'text-emerald-400' : isMedium ? 'text-amber-400' : 'text-rose-400'
@@ -81,7 +82,7 @@ export const CitationsPanel: React.FC<CitationsPanelProps> = ({
 
         {citations.length === 0 ? (
           <div className="text-center py-10 text-xs text-slate-500">
-            No document citations for this turn (answered from general model knowledge or web grounding).
+            No document citations for this turn. Treat the answer as unverified.
           </div>
         ) : (
           <div className="space-y-2.5">
