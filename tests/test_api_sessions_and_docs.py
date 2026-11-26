@@ -169,3 +169,25 @@ def test_zero_temperature_is_preserved(client_and_store):
     updated = client.patch(f"/api/v1/sessions/{session_id}", json={"temperature": 0.0})
     assert updated.status_code == 200
     assert updated.json()["temperature"] == 0.0
+
+
+@pytest.mark.parametrize("error,expected", [(FileNotFoundError("missing"), 404), (ValueError("invalid"), 400), (RuntimeError("private error"), 500)])
+def test_reindex_error_mapping(client_and_store, monkeypatch, error, expected):
+    client, _ = client_and_store
+    def fail(*args, **kwargs):
+        raise error
+    monkeypatch.setattr(IngestionService, "reindex_document", fail)
+    response = client.post("/api/v1/documents/test-id/reindex")
+    assert response.status_code == expected
+    if expected == 500:
+        assert "private error" not in response.text
+
+
+def test_upload_internal_error_is_redacted(client_and_store, monkeypatch):
+    client, _ = client_and_store
+    def fail(*args, **kwargs):
+        raise RuntimeError("private path")
+    monkeypatch.setattr(IngestionService, "ingest_bytes", fail)
+    response = client.post("/api/v1/documents/upload", files={"file": ("test.txt", b"content", "text/plain")})
+    assert response.status_code == 500
+    assert "private path" not in response.text
