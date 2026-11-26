@@ -16,6 +16,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from api.routes import auth, chat, diagnostics, documents, health, sessions
 from config.settings import API_V1_PREFIX, CORS_ORIGINS
@@ -37,33 +38,58 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class RequestBodyLimitMiddleware(BaseHTTPMiddleware):
-    """
-    Enforces maximum request body sizes to prevent denial of service:
-    - 25 MB for document upload routes
-    - 2 MB for standard JSON payload endpoints
-    """
-    MAX_UPLOAD_BYTES = 25 * 1024 * 1024   # 25 MB
-    MAX_DEFAULT_BYTES = 2 * 1024 * 1024   # 2 MB
+class RequestBodyLimitMiddleware:
+    """Bound incoming HTTP bodies even when Content-Length is absent."""
 
-    async def dispatch(self, request: Request, call_next):
-        content_length = request.headers.get("content-length")
-        if content_length:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        limit = (25 if scope["path"].endswith("/documents/upload") else 2) * 1024 * 1024
+        async def reject(code: int, detail: str):
+            await JSONResponse(status_code=code, content={
+                "success": False, "error": detail, "status_code": code,
+            })(scope, receive, send)
+        headers = dict(scope["headers"])
+        declared = headers.get(b"content-length")
+        if declared is not None:
             try:
-                length = int(content_length)
-                limit = self.MAX_UPLOAD_BYTES if request.url.path.endswith("/documents/upload") else self.MAX_DEFAULT_BYTES
-                if length > limit:
-                    return JSONResponse(
-                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                        content={
-                            "success": False,
-                            "error": f"Request payload exceeds allowed limit of {limit // (1024 * 1024)}MB.",
-                            "status_code": 413,
-                        },
-                    )
+                length = int(declared)
+                if length < 0:
+                    raise ValueError("negative length")
             except ValueError:
-                pass
-        return await call_next(request)
+                await reject(400, "Invalid Content-Length.")
+                return
+            if length > limit:
+                await reject(413, "Request payload exceeds allowed limit.")
+                return
+        total = 0
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            chunk = message.get("body", b"")
+            total += len(chunk)
+            if total > limit:
+                await reject(413, "Request payload exceeds allowed limit.")
+                return
+            body.extend(chunk)
+            if not message.get("more_body", False):
+                break
+        delivered = False
+
+        async def replay() -> Message:
+            nonlocal delivered
+            if not delivered:
+                delivered = True
+                return {"type": "http.request", "body": bytes(body), "more_body": False}
+            return await receive()
+
+        await self.app(scope, replay, send)
 
 
 class RequestObservabilityMiddleware(BaseHTTPMiddleware):
@@ -75,7 +101,9 @@ class RequestObservabilityMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next):
-        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+        request_id = request.headers.get("x-request-id", "")
+        if not request_id or len(request_id) > 64 or not all(c.isascii() and (c.isalnum() or c in "-_") for c in request_id):
+            request_id = str(uuid.uuid4())
         start_time = time.perf_counter()
 
         response = await call_next(request)
@@ -112,9 +140,9 @@ app = FastAPI(
 )
 
 # ── Security & Limit Middlewares ──────────────────────────────────────────────
+app.add_middleware(RequestBodyLimitMiddleware)
 app.add_middleware(RequestObservabilityMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RequestBodyLimitMiddleware)
 
 # ── CORS Middleware (restricted to configured origins) ────────────────────────
 app.add_middleware(
