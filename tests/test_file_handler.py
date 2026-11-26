@@ -276,3 +276,99 @@ class TestUIHelpers:
     def test_get_file_size_label_mb(self):
         f = _make_upload("x.txt", b"a" * (2 * 1024 * 1024))
         assert "MB" in get_file_size_label(f)
+
+    def test_get_file_size_label_exception(self):
+        f = MagicMock()
+        f.getvalue.side_effect = RuntimeError("IO error")
+        assert get_file_size_label(f) == "0 B"
+
+
+class TestFileHandlerEdgeCases:
+    def test_safe_delete_handles_existing_and_nonexistent(self, tmp_path):
+        from src.file_handler import _safe_delete
+        f = tmp_path / "to_delete.txt"
+        f.write_text("hello")
+        assert f.exists()
+        _safe_delete(f)
+        assert not f.exists()
+        # Nonexistent should not raise
+        _safe_delete(tmp_path / "never_existed.txt")
+
+    @patch("src.file_handler.validate_upload", return_value=(True, ""))
+    @patch("src.document_loader.load_file", return_value=[])
+    def test_index_uploaded_file_no_extractable_text(self, mock_load, mock_val, tmp_path):
+        from src.file_handler import index_uploaded_file
+        upload = MagicMock()
+        upload.name = "empty.txt"
+        upload.getvalue.return_value = b"some text"
+        with patch("config.settings.UPLOADS_DIR", tmp_path):
+            result = index_uploaded_file(upload, global_db="existing_db")
+            assert result == "existing_db"
+
+    @patch("src.file_handler.validate_upload", return_value=(True, ""))
+    @patch("src.document_loader.load_file", side_effect=ValueError("Loader crash"))
+    def test_index_uploaded_file_load_exception(self, mock_load, mock_val, tmp_path):
+        from src.file_handler import index_uploaded_file
+        upload = MagicMock()
+        upload.name = "broken.txt"
+        upload.getvalue.return_value = b"some text"
+        with patch("config.settings.UPLOADS_DIR", tmp_path):
+            result = index_uploaded_file(upload, global_db="existing_db")
+            assert result == "existing_db"
+
+    @patch("src.file_handler.validate_upload", return_value=(True, ""))
+    @patch("src.document_loader.load_file")
+    @patch("src.text_splitter.split_documents", return_value=[])
+    def test_index_uploaded_file_empty_chunks(self, mock_split, mock_load, mock_val, tmp_path):
+        from langchain_core.documents import Document
+
+        from src.file_handler import index_uploaded_file
+        mock_load.return_value = [Document(page_content="text", metadata={})]
+        upload = MagicMock()
+        upload.name = "chunks.txt"
+        upload.getvalue.return_value = b"some text"
+        with patch("config.settings.UPLOADS_DIR", tmp_path):
+            result = index_uploaded_file(upload, global_db="existing_db")
+            assert result == "existing_db"
+
+    @patch("src.file_handler.validate_upload", return_value=(True, ""))
+    @patch("src.document_loader.load_file")
+    @patch("src.text_splitter.split_documents")
+    @patch("src.embeddings.get_embeddings")
+    @patch("langchain_community.vectorstores.FAISS.from_documents", side_effect=RuntimeError("Embedding fail"))
+    def test_index_uploaded_file_embedding_failure(self, mock_faiss, mock_emb, mock_split, mock_load, mock_val, tmp_path):
+        from langchain_core.documents import Document
+
+        from src.file_handler import index_uploaded_file
+        mock_load.return_value = [Document(page_content="text", metadata={})]
+        mock_split.return_value = [Document(page_content="chunk", metadata={})]
+        upload = MagicMock()
+        upload.name = "embed_fail.txt"
+        upload.getvalue.return_value = b"some text"
+        with patch("config.settings.UPLOADS_DIR", tmp_path):
+            result = index_uploaded_file(upload, global_db="existing_db")
+            assert result == "existing_db"
+
+    @patch("src.file_handler.validate_upload", return_value=(True, ""))
+    @patch("src.document_loader.load_file")
+    @patch("src.text_splitter.split_documents")
+    @patch("src.embeddings.get_embeddings")
+    @patch("langchain_community.vectorstores.FAISS.from_documents")
+    def test_index_uploaded_file_merge_failure_returns_upload_db(self, mock_faiss, mock_emb, mock_split, mock_load, mock_val, tmp_path):
+        from langchain_core.documents import Document
+
+        from src.file_handler import index_uploaded_file
+        mock_load.return_value = [Document(page_content="text", metadata={})]
+        mock_split.return_value = [Document(page_content="chunk", metadata={})]
+        mock_upload_db = MagicMock()
+        mock_faiss.return_value = mock_upload_db
+
+        mock_global_db = MagicMock()
+        mock_global_db.merge_from.side_effect = RuntimeError("Merge conflict")
+
+        upload = MagicMock()
+        upload.name = "merge_fail.txt"
+        upload.getvalue.return_value = b"some text"
+        with patch("config.settings.UPLOADS_DIR", tmp_path):
+            result = index_uploaded_file(upload, global_db=mock_global_db)
+            assert result == mock_upload_db

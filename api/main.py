@@ -66,32 +66,45 @@ class RequestBodyLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-class RequestObservabilityMiddleware(BaseHTTPMiddleware):
+class RequestObservabilityMiddleware:
     """
-    Observability & Tracing Middleware (Phase 14):
-    - Generates or propagates unique correlation ID (X-Request-ID).
-    - Measures high-resolution request duration and attaches X-Process-Time header.
-    - Emits structured operational log for every request with latency and client metadata.
+    Pure ASGI Observability Middleware (Phase 14):
+    Zero deadlock risk with StreamingResponse or Server-Sent Events.
+    Attaches X-Request-ID and X-Process-Time headers to every HTTP response.
     """
+    def __init__(self, app):
+        self.app = app
 
-    async def dispatch(self, request: Request, call_next):
-        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request_id = None
+        for key, value in scope.get("headers", []):
+            if key == b"x-request-id":
+                request_id = value.decode("utf-8", errors="ignore")
+                break
+        if not request_id:
+            request_id = str(uuid.uuid4())
+
         start_time = time.perf_counter()
 
-        response = await call_next(request)
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                headers.append((b"x-request-id", request_id.encode("utf-8")))
+                headers.append((b"x-process-time", f"{duration_ms:.2f}ms".encode("utf-8")))
+                message["headers"] = headers
+                logger.info(
+                    f"HTTP {scope.get('method')} {scope.get('path')} "
+                    f"status={message.get('status')} latency={duration_ms:.2f}ms "
+                    f"request_id={request_id}"
+                )
+            await send(message)
 
-        duration_ms = (time.perf_counter() - start_time) * 1000.0
-        response.headers["X-Request-ID"] = request_id
-        response.headers["X-Process-Time"] = f"{duration_ms:.2f}ms"
-
-        # Log operational request metrics
-        client_host = request.client.host if request.client else "unknown"
-        logger.info(
-            f"HTTP {request.method} {request.url.path} "
-            f"status={response.status_code} latency={duration_ms:.2f}ms "
-            f"request_id={request_id} client={client_host}"
-        )
-        return response
+        await self.app(scope, receive, send_wrapper)
 
 
 @asynccontextmanager

@@ -1,9 +1,10 @@
 # 🤖 RAGBOT — Enterprise Hybrid Retrieval-Augmented Generation Platform
 
 [![CI Pipeline](https://github.com/Manvithagopireddy/RAGBOT/actions/workflows/ci.yml/badge.svg)](https://github.com/Manvithagopireddy/RAGBOT/actions)
-![Tests](https://img.shields.io/badge/Tests-209%20Passed-brightgreen.svg)
-![Coverage](https://img.shields.io/badge/Coverage-86%25-green.svg)
+![Tests](https://img.shields.io/badge/Tests-228%20Passed-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/Coverage-91%25-brightgreen.svg)
 ![Security](https://img.shields.io/badge/Security-Bandit%20Clean%20%7C%20Zero%20CVEs-blueviolet.svg)
+![CodeQL](https://img.shields.io/badge/CodeQL-Passing-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB.svg?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB.svg?logo=react&logoColor=black)
@@ -16,7 +17,12 @@
 ![LLM](https://img.shields.io/badge/LLM-Gemini_2.5_Flash-8E75B2.svg?logo=google&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
-> **RAGBOT** is a portfolio Retrieval-Augmented Generation (RAG) platform designed to generate answers with retrieved citations to complex technical questions. It combines dense semantic search (FAISS) with sparse lexical search (BM25) via Reciprocal Rank Fusion (RRF), Cross-Encoder reranking, conversation-aware query rephrasing, and real-time Server-Sent Events (SSE) streaming.
+> **RAGBOT** is a portfolio-grade, production-hardened Retrieval-Augmented Generation (RAG) platform designed to deliver grounded answers with retrieved citations to complex technical questions. It combines dense semantic search (FAISS) with sparse lexical search (BM25) via Reciprocal Rank Fusion (RRF), Cross-Encoder reranking, conversation-aware query rephrasing, real-time Server-Sent Events (SSE) streaming, Zero-Trust multi-tenant isolation, and 91% automated test coverage.
+
+📖 **Recruiter & Engineering Case Study**: [docs/CASE_STUDY.md](docs/CASE_STUDY.md)  
+🛡️ **Security Audit & STRIDE Report**: [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)  
+📊 **Evaluation Benchmarks & Latency**: [docs/BENCHMARKS.md](docs/BENCHMARKS.md)  
+🛠️ **Code Quality & Test Coverage**: [docs/CODE_QUALITY.md](docs/CODE_QUALITY.md)
 
 ---
 
