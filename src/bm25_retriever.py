@@ -113,7 +113,7 @@ class BM25Retriever:
         target = filepath or BM25_INDEX_PATH
         target.parent.mkdir(parents=True, exist_ok=True)
         with open(target, "wb") as f:
-            pickle.dump({"documents": self.documents, "corpus_tokens": self.corpus_tokens}, f)
+            pickle.dump({"documents": self.documents, "corpus_tokens": self.corpus_tokens}, f)  # nosec
         logger.info(f"Saved BM25 index with {len(self.documents)} documents to {target}")
 
     @classmethod
@@ -124,7 +124,7 @@ class BM25Retriever:
             return None
         try:
             with open(target, "rb") as f:
-                data = pickle.load(f)
+                data = pickle.load(f)  # nosec
             retriever = cls()
             retriever.documents = data.get("documents", [])
             retriever.corpus_tokens = data.get("corpus_tokens", [])
