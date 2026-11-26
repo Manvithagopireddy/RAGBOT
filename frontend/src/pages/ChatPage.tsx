@@ -62,11 +62,11 @@ export const ChatPage: React.FC = () => {
       .catch((err) => console.error(err));
   }, []);
 
-  const loadSessions = async () => {
+  const loadSessions = async (selectInitial = true) => {
     try {
       const data = await api.listSessions();
       setSessions(data);
-      if (data.length > 0 && !activeSessionId) {
+      if (selectInitial && data.length > 0 && !activeSessionId) {
         selectSession(data[0].session_id);
       }
     } catch (err) {
@@ -190,7 +190,7 @@ export const ChatPage: React.FC = () => {
         onMetadata: (data) => {
           if (!activeSessionId && data.session_id) {
             setActiveSessionId(data.session_id);
-            loadSessions();
+            loadSessions(false);
           }
         },
         onCitations: (data) => {
@@ -224,7 +224,7 @@ export const ChatPage: React.FC = () => {
             )
           );
           setIsStreaming(false);
-          loadSessions();
+          loadSessions(false);
         },
         onError: (err) => {
           console.error('Streaming error:', err);
