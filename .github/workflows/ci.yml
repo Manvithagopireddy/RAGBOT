@@ -117,7 +117,8 @@ jobs:
 
   docker-build:
     name: Container Build Verification
-    runs-on: ubuntu-latest
+    # Playwright 1.58.2 supports Ubuntu 24.04, not the current ubuntu-latest (26.04).
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     needs: [backend-quality-and-tests, frontend-build]
 
