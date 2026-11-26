@@ -37,7 +37,8 @@ export const ChatPage: React.FC = () => {
   const [reranking, setReranking] = useState(true);
 
   // Citations drawer state
-  const [showCitations, setShowCitations] = useState(true);
+  const [showCitations, setShowCitations] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
   const [activeConfidenceScore, setActiveConfidenceScore] = useState<number | null>(null);
   const [activeConfidenceDesc, setActiveConfidenceDesc] = useState<string | null>(null);
@@ -248,36 +249,39 @@ export const ChatPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+    <div className="relative flex h-[calc(100dvh-3.5rem)] overflow-hidden">
       {/* Session History Sidebar */}
+      <div className={`${showHistory ? 'absolute inset-y-0 left-0 z-30 bg-slate-950' : 'hidden'} lg:relative lg:block`}>
       <Sidebar
         sessions={sessions}
         activeSessionId={activeSessionId}
-        onSelectSession={selectSession}
-        onNewSession={handleNewSession}
-        onDeleteSession={handleDeleteSession}
+        onSelectSession={(id) => { if (!isStreaming) { selectSession(id); setShowHistory(false); } }}
+        onNewSession={() => { if (!isStreaming) { handleNewSession(); setShowHistory(false); } }}
+        onDeleteSession={(id) => { if (!isStreaming) handleDeleteSession(id); }}
         onRenameSession={handleRenameSession}
         documentCount={docCount}
       />
 
+      </div>
       {/* Main Chat Workspace */}
-      <main className="flex-1 flex flex-col h-full bg-slate-950 relative overflow-hidden">
+      <main className="min-w-0 flex-1 flex flex-col h-full bg-slate-950 relative overflow-hidden">
         {/* Top Chat Toolbar */}
         <div className="h-11 border-b border-slate-800/80 px-4 flex items-center justify-between text-xs bg-slate-900/30">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-200">
+          <div className="flex min-w-0 items-center gap-2">
+            <button className="lg:hidden p-1 text-teal-400" aria-expanded={showHistory} onClick={() => setShowHistory(!showHistory)}>Chats</button>
+            <span className="truncate font-semibold text-slate-200">
               {sessions.find((s) => s.session_id === activeSessionId)?.title || 'New Conversation'}
             </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-teal-400 border border-slate-700/60">
+            <span className="hidden xl:inline-flex text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-teal-400 border border-slate-700/60">
               ⚡ {selectedModel}
             </span>
             {hybridSearch && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-indigo-400 border border-slate-700/60 flex items-center gap-1">
+              <span className="hidden xl:inline-flex text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-indigo-400 border border-slate-700/60 flex items-center gap-1">
                 <Layers className="w-3 h-3" /> Hybrid (BM25+FAISS)
               </span>
             )}
             {reranking && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700/60 flex items-center gap-1">
+              <span className="hidden xl:inline-flex text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700/60 flex items-center gap-1">
                 <Sparkles className="w-3 h-3" /> Cross-Encoder
               </span>
             )}
@@ -393,7 +397,7 @@ export const ChatPage: React.FC = () => {
                 Enterprise AI Knowledge Assistant
               </h2>
               <p className="text-sm text-slate-400 mb-8 leading-relaxed">
-                Ask questions grounded directly in your uploaded PDFs, Word documents, text files, and spreadsheets with verified page citations.
+                Ask questions grounded directly in your uploaded PDFs, Word documents, text files, and spreadsheets with retrieved source citations.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
@@ -477,7 +481,7 @@ export const ChatPage: React.FC = () => {
 
                       {isAssistant && msg.confidence_score !== undefined && msg.confidence_score !== null && (
                         <span className="ml-auto font-mono text-[10px] text-slate-500">
-                          {msg.confidence_score}% grounded
+                          {msg.confidence_score}% retrieval confidence
                         </span>
                       )}
                     </div>
@@ -494,6 +498,7 @@ export const ChatPage: React.FC = () => {
           <div className="max-w-3xl mx-auto relative flex items-center">
             <textarea
               rows={1}
+              aria-label="Chat message"
               value={inputPrompt}
               onChange={(e) => setInputPrompt(e.target.value)}
               onKeyDown={(e) => {
@@ -508,6 +513,7 @@ export const ChatPage: React.FC = () => {
             />
             <button
               onClick={() => handleSendMessage()}
+              aria-label="Send message"
               disabled={!inputPrompt.trim() || isStreaming}
               className="absolute right-2 p-2 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:opacity-40 disabled:hover:bg-teal-600 text-white transition-all shadow-sm"
             >
