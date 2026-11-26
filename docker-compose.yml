@@ -42,6 +42,7 @@ services:
 
   # Streamlit UI (Legacy / Data Science Showcase)
   streamlit:
+    profiles: [legacy]
     build:
       context: .
       dockerfile: Dockerfile
@@ -53,9 +54,9 @@ services:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
     volumes:
-      - ragbot_chats:/app/chats
-      - ragbot_uploads:/app/uploads
-      - ragbot_vector_store:/app/vector_store
+      - ragbot_legacy_chats:/app/chats
+      - ragbot_legacy_uploads:/app/uploads
+      - ragbot_legacy_vectors:/app/vector_store
       - ./knowledge_base:/app/knowledge_base:ro
     restart: unless-stopped
 
@@ -63,3 +64,6 @@ volumes:
   ragbot_chats:
   ragbot_uploads:
   ragbot_vector_store:
+  ragbot_legacy_chats:
+  ragbot_legacy_uploads:
+  ragbot_legacy_vectors:
