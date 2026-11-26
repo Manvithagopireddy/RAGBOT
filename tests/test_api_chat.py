@@ -156,3 +156,15 @@ def test_followup_retrieval_is_scoped(chat_client, monkeypatch):
     kwargs = retrieval.retrieve.call_args.kwargs
     assert kwargs["query"] == "standalone query"
     assert kwargs["user_id"] == rag.store.get_session(response.json()["session_id"])["user_id"]
+
+
+def test_stream_rejects_foreign_session_before_opening(chat_client, monkeypatch):
+    client, rag, _ = chat_client
+    other = rag.store.create_user("other", "other@example.com", "fixture")
+    session = rag.store.create_session(user_id=other["user_id"])
+    generate = MagicMock()
+    monkeypatch.setattr(rag, "generate_stream", generate)
+    response = client.post("/api/v1/chat/stream", json={"message": "hello", "session_id": session})
+    assert response.status_code == 404
+    generate.assert_not_called()
+    assert rag.store.get_messages(session) == []

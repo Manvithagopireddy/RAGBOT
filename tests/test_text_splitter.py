@@ -32,3 +32,14 @@ def test_split_empty_documents():
     """Tests that empty document lists return an empty list without raising errors."""
     chunks = split_documents([])
     assert chunks == []
+
+
+def test_token_splitter_falls_back_when_tokenizer_unavailable(monkeypatch):
+    from src.text_splitter import RecursiveCharacterTextSplitter, get_text_splitter
+    def fail(*args, **kwargs):
+        raise RuntimeError("offline tokenizer")
+    monkeypatch.setattr(RecursiveCharacterTextSplitter, "from_tiktoken_encoder", fail)
+    splitter = get_text_splitter(method="token", chunk_size=20, chunk_overlap=0)
+    chunks = splitter.split_text("one two three four five six seven eight nine ten")
+    assert len(chunks) > 1
+    assert all(len(chunk) <= 20 for chunk in chunks)

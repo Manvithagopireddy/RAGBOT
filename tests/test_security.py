@@ -79,3 +79,16 @@ class TestSecurityUtilities:
         allowed, wait = limiter.is_allowed(client)
         assert allowed is False
         assert wait > 0
+
+
+def test_rate_limit_is_atomic():
+    from concurrent.futures import ThreadPoolExecutor
+    limiter = InMemoryRateLimiter(requests_per_minute=10)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        decisions = list(pool.map(lambda _: limiter.is_allowed("same-client")[0], range(40)))
+    assert sum(decisions) == 10
+    assert limiter.is_allowed("different-client")[0]
+
+
+def test_invalid_password_hash_is_rejected():
+    assert verify_password("example", "not-a-bcrypt-hash") is False

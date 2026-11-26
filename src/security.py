@@ -11,6 +11,7 @@ import html
 import os
 import time
 from datetime import datetime, timedelta
+from threading import Lock
 from typing import Any, Dict, Optional, Tuple
 
 import bcrypt
@@ -33,6 +34,8 @@ if not _raw_secret:
     _raw_secret = "ragbot-dev-only-insecure-secret-do-not-use-in-prod"
     logger.warning("JWT_SECRET_KEY not set — using insecure development default. Set JWT_SECRET_KEY before deploying.")
 elif len(_raw_secret) < 32:
+    if os.environ.get("APP_ENV", "development").lower() in ("production", "prod", "staging"):
+        raise RuntimeError("Production JWT_SECRET_KEY must contain at least 32 characters.")
     logger.warning("JWT_SECRET_KEY is shorter than 32 characters — this is weak. Use at least 32 random bytes.")
 
 JWT_SECRET_KEY: str = _raw_secret
@@ -124,6 +127,9 @@ class InMemoryRateLimiter:
     Default: 60 requests per minute.
     """
     def __init__(self, requests_per_minute: int = 60):
+        if requests_per_minute < 1:
+            raise ValueError("Rate limit must be positive.")
+        self._lock = Lock()
         self.rpm = requests_per_minute
         self.window = 60.0  # seconds
         # key -> list of timestamps
@@ -134,6 +140,10 @@ class InMemoryRateLimiter:
         Checks if client_key has remaining request quota.
         Returns (is_allowed, remaining_seconds_to_wait).
         """
+        with self._lock:
+            return self._check_locked(client_key)
+
+    def _check_locked(self, client_key: str) -> Tuple[bool, int]:
         now = time.time()
         cutoff = now - self.window
 

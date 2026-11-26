@@ -134,3 +134,29 @@ def test_untrusted_cors_origin(client):
     })
     assert response.status_code == 400
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_chunked_request_body_limit(client):
+    def chunks():
+        for _ in range(3):
+            yield b"x" * (1024 * 1024)
+    response = client.post("/api/v1/auth/login", content=chunks(), headers={"Content-Type": "application/json"})
+    assert response.status_code == 413
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
+def test_declared_body_limit(client):
+    response = client.post("/api/v1/auth/login", content=b"{}", headers={"Content-Length": "3000000"})
+    assert response.status_code == 413
+
+
+def test_invalid_content_length(client):
+    response = client.post("/api/v1/auth/login", content=b"{}", headers={"Content-Length": "-1"})
+    assert response.status_code == 400
+
+
+def test_request_id_is_bounded(client):
+    response = client.get("/", headers={"X-Request-ID": "x" * 100})
+    assert len(response.headers["x-request-id"]) <= 64
+    response = client.get("/", headers={"X-Request-ID": "valid-id_123"})
+    assert response.headers["x-request-id"] == "valid-id_123"
