@@ -4,6 +4,8 @@ All endpoints require valid JWT authentication. User ID is derived from the toke
 """
 from typing import List
 
+from starlette.concurrency import run_in_threadpool
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from api.dependencies import (
@@ -32,7 +34,8 @@ async def upload_document(
         raw_bytes = await file.read(MAX_UPLOAD_BYTES + 1)
         if len(raw_bytes) > MAX_UPLOAD_BYTES:
             raise HTTPException(status_code=413, detail="File exceeds upload limit.")
-        doc_record = ingestion.ingest_bytes(
+        doc_record = await run_in_threadpool(
+            ingestion.ingest_bytes,
             raw_bytes=raw_bytes,
             filename=file.filename or "upload.bin",
             user_id=current_user["user_id"],
