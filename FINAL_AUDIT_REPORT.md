@@ -30,3 +30,9 @@ Scope: targeted review of CI, Docker, API middleware, session routes, retrieval 
 Set GOOGLE_API_KEY and a cryptographically random JWT_SECRET_KEY in an untracked .env. Run docker compose up --build -d. Configure HTTPS and access restrictions before exposing the frontend publicly. Legacy Streamlit is opt-in and uses separate storage. Never use the mock CI key in production.
 
 No new coverage, performance, vulnerability or evaluation numbers are asserted here. Review PR #2 and its latest workflow results before merge. Public deployment and real-model testing require an authorized hosting environment and credentials.
+
+## Verified baseline and remaining validation (2026-11-26)
+
+GitHub Actions [run #22](https://github.com/Manvithagopireddy/RAGBOT/actions/runs/45798852295), commit `666bb1c`: 215 tests passed, zero failed, one warning, 85% repository-wide line coverage (including test files). Ruff, MyPy, Bandit (medium/high severity threshold), pip-audit, upstream torch audit and frontend production compilation passed. CPU-only torch was confirmed. Docker integration had not completed when recorded. These numbers do not describe the newer final-validation branch.
+
+The follow-up branch adds storage and evaluation regression tests, desktop/mobile browser automation, an offline RAG benchmark, a bounded concurrent health-endpoint benchmark, and an exact resolved dependency inventory artifact. The Python dependency inventory is not yet an enforced lockfile. Offline extractive metrics are not live Gemini answer-quality measurements. A 95% coverage claim requires a new measured report; browser tests, container checks, benchmarks, actual Gemini generation and deployment remain unverified until executed. Public hosting requires an authorized hosting environment and secure secrets.
