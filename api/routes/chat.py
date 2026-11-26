@@ -87,6 +87,9 @@ def stream_chat_message(
             detail="Message content cannot be empty.",
         )
 
+    if payload.session_id and not rag.store.get_session(payload.session_id, user_id=current_user['user_id']):
+        raise HTTPException(status_code=404, detail="Session not found.")
+
     stream_generator = rag.generate_stream(
         question=clean_question,
         session_id=payload.session_id,
