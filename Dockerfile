@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ── STAGE 1: Builder ──────────────────────────────────────────────────────────
 FROM python:3.11-slim AS builder
 
@@ -12,8 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install --upgrade pip && \
+    pip install --prefix=/install -r requirements.txt
 
 # ── STAGE 2: Production Runner ────────────────────────────────────────────────
 FROM python:3.11-slim AS runner
