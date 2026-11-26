@@ -4,9 +4,8 @@ All endpoints require valid JWT authentication. User ID is derived from the toke
 """
 from typing import List
 
-from starlette.concurrency import run_in_threadpool
-
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from starlette.concurrency import run_in_threadpool
 
 from api.dependencies import (
     check_rate_limit,
